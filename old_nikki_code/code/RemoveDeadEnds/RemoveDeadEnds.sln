@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RemoveDeadEnds", "RemoveDeadEnds\RemoveDeadEnds.vcproj", "{56FDB3C8-5BE5-4E21-81C8-079CC1F4AC48}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{56FDB3C8-5BE5-4E21-81C8-079CC1F4AC48}.Debug|Win32.ActiveCfg = Debug|Win32
+		{56FDB3C8-5BE5-4E21-81C8-079CC1F4AC48}.Debug|Win32.Build.0 = Debug|Win32
+		{56FDB3C8-5BE5-4E21-81C8-079CC1F4AC48}.Release|Win32.ActiveCfg = Release|Win32
+		{56FDB3C8-5BE5-4E21-81C8-079CC1F4AC48}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
