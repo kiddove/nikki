@@ -3,7 +3,7 @@
 //
 
 #pragma once
-
+#include "LASData.h"
 
 // CLASDlg dialog
 class CLASDlg : public CDialog
@@ -29,6 +29,7 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+	LASData m_Data;
 public:
 	afx_msg void OnBnClickedButtonRead();
 };

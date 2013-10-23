@@ -5,7 +5,6 @@
 #include "stdafx.h"
 #include "LAS.h"
 #include "LASDlg.h"
-#include "LASData.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -100,8 +99,8 @@ BOOL CLASDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
-	LASData ld;
-
+	m_Data.Init();
+	
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -158,4 +157,6 @@ HCURSOR CLASDlg::OnQueryDragIcon()
 void CLASDlg::OnBnClickedButtonRead()
 {
 	// TODO: Add your control notification handler code here
+	m_Data.ReadLAS();
+	::MessageBox(NULL, "Ok!", _T("INFO"), MB_OK);
 }
