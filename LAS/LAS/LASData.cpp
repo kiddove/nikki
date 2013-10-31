@@ -78,26 +78,26 @@ void LASData::WriteLog(CString strLog)
 void LASData::ReadLAS()
 {
 	// open output file
-	try
-	{
-		if (!m_LASDataFile.Open("./SearchResult.txt", CFile::modeCreate | CFile::modeReadWrite | CFile::shareDenyNone))
-		{
-			DWORD dwError = ::GetLastError();
-			//TRACE(_T("open OutputData14 file failed.(Error:%d)\n"), dwError);
-			CString strErr;
-			strErr.Format(_T("open SearchResult file failed.(Error:%d)\n"), dwError);
-			WriteLog(strErr);
-		}
-	}
-	catch(CFileException* e)
-	{
-		TCHAR szError[MAX_PATH_LEN];
-		e->GetErrorMessage(szError, MAX_PATH_LEN);
-		//TRACE(_T("CFileException catched when open OutputData14 file. [%s]\n"), szError);
-		CString strErr;
-		strErr.Format(_T("CFileException catched when open SearchResult file. [%s]\n"), szError);
-		WriteLog(strErr);
-	}
+	//try
+	//{
+	//	if (!m_LASDataFile.Open("./SearchResult.txt", CFile::modeCreate | CFile::modeReadWrite | CFile::shareDenyNone))
+	//	{
+	//		DWORD dwError = ::GetLastError();
+	//		//TRACE(_T("open OutputData14 file failed.(Error:%d)\n"), dwError);
+	//		CString strErr;
+	//		strErr.Format(_T("open SearchResult file failed.(Error:%d)\n"), dwError);
+	//		WriteLog(strErr);
+	//	}
+	//}
+	//catch(CFileException* e)
+	//{
+	//	TCHAR szError[MAX_PATH_LEN];
+	//	e->GetErrorMessage(szError, MAX_PATH_LEN);
+	//	//TRACE(_T("CFileException catched when open OutputData14 file. [%s]\n"), szError);
+	//	CString strErr;
+	//	strErr.Format(_T("CFileException catched when open SearchResult file. [%s]\n"), szError);
+	//	WriteLog(strErr);
+	//}
 	// file is little endian
 	CFileFind ff;
 	BOOL bFind = ff.FindFile(m_strLASDataFileDir);
@@ -111,8 +111,35 @@ void LASData::ReadLAS()
 			CString strFile;
 			strFile = ff.GetFilePath();
 			CString str = strFile.Right(3);
+
+			CString strName = ff.GetFileName();
+			int ii = strName.Find(_T('.'));
+			CString strSuffix = strName.Left(ii);
 			if (str.CompareNoCase(_T("las")) == 0)
 			{
+				try
+				{
+					CString strOutput;
+					strOutput.Format(_T("SearchResult_%s.txt"), strSuffix);
+					if (!m_LASDataFile.Open(strOutput, CFile::modeCreate | CFile::modeReadWrite | CFile::shareDenyNone))
+					{
+						DWORD dwError = ::GetLastError();
+						//TRACE(_T("open OutputData14 file failed.(Error:%d)\n"), dwError);
+						CString strErr;
+						strErr.Format(_T("open SearchResult(%s) file failed.(Error:%d)\n"), strSuffix, dwError);
+						WriteLog(strErr);
+					}
+				}
+				catch(CFileException* e)
+				{
+					TCHAR szError[MAX_PATH_LEN];
+					e->GetErrorMessage(szError, MAX_PATH_LEN);
+					//TRACE(_T("CFileException catched when open OutputData14 file. [%s]\n"), szError);
+					CString strErr;
+					strErr.Format(_T("CFileException catched when open SearchResult file. [%s]\n"), szError);
+					WriteLog(strErr);
+				}
+
 				if (m_bBigEndian)
 				{
 					// needs to transfer
@@ -138,7 +165,11 @@ void LASData::ReadLAS()
 							f.Seek(phb.iOffset_to_point_data, CFile::begin);
 							ASSERT(f.GetLength() == phb.iOffset_to_point_data + phb.iNumber_of_point_records * phb.iPoint_Data_Record_Length);
 
+							CString strInfo;
+							strInfo.Format(_T("Return = %d X Y Z\n"), m_iReturn_Number);
+							m_LASDataFile.WriteString(strInfo);
 							for (UINT i = 0; i < phb.iNumber_of_point_records; i++)
+							//for (UINT i = 0; i < 10; i++)
 							{
 								memset(pBuffer, 0, iLen);
 								f.Read(pBuffer, iLen);
@@ -154,10 +185,10 @@ void LASData::ReadLAS()
 							}
 							delete pBuffer;
 							f.Close();
-							CString strInfo;
-							strInfo.Format(_T("\ntotal %d record in file : %s\n\n\n"), iCount, strFile);
-							m_LASDataFile.WriteString(strInfo);
-							TRACE(_T("\n"));
+							//CString strInfo;
+							//strInfo.Format(_T("\ntotal %d record in file : %s\n\n\n"), iCount, strFile);
+							//m_LASDataFile.WriteString(strInfo);
+							//TRACE(_T("\n"));
 						}
 						else
 						{
@@ -178,12 +209,12 @@ void LASData::ReadLAS()
 						WriteLog(strErr);
 					}
 				}
+
+				if (m_LASDataFile.m_hFile != INVALID_HANDLE_VALUE)
+					m_LASDataFile.Close();
 			}
 		}
 	}
-
-	if (m_LASDataFile.m_hFile != INVALID_HANDLE_VALUE)
-		m_LASDataFile.Close();
 }
 
 int LASData::GetStructLength(int type)
@@ -232,11 +263,15 @@ void LASData::Output(CPOINT_DATA_RECORD* pData, PUBLIC_HEADER_BLOCK* pHeader)
 		return;
 	}
 	CString strOutput;
-	strOutput.Format(_T("X:%.8f, Y:%.8f, Z:%.8f\n"), (pData->m_pData->X * pHeader->dX_scale_factor + pHeader->dX_offset)
+	/*strOutput.Format(_T("X:%.8f, Y:%.8f, Z:%.8f\n"), (pData->m_pData->X * pHeader->dX_scale_factor + pHeader->dX_offset)
 		,(pData->m_pData->Y * pHeader->dY_scale_factor + pHeader->dY_offset)
-		,(pData->m_pData->Z * pHeader->dZ_scale_factor + pHeader->dZ_offset));
+		,(pData->m_pData->Z * pHeader->dZ_scale_factor + pHeader->dZ_offset));*/
+
+	strOutput.Format(_T("%.3f,%.3f,%.3f\n"), ((double)pData->m_pData->X * pHeader->dX_scale_factor + pHeader->dX_offset)
+		,((double)pData->m_pData->Y * pHeader->dY_scale_factor + pHeader->dY_offset)
+		,((double)pData->m_pData->Z * pHeader->dZ_scale_factor + pHeader->dZ_offset));
 
 	m_LASDataFile.WriteString(strOutput);
 
-	m_LASDataFile.WriteString("\n------------------------------------------------------------\n\n");
+	//m_LASDataFile.WriteString("\n------------------------------------------------------------\n\n");
 }

@@ -95,7 +95,10 @@ bool GLAData::IsInvalid(CString& strFile, int& stLen)
 			int isize = sizeof(stLen);
 			if (ilen % isize != 0)
 			{
-				TRACE(_T("Invalid File length!\n"));
+				//TRACE(_T("Invalid File length!\n"));
+				CString strErr;
+				strErr.Format(_T("Invalid File length! [%s]"), strFile);
+				WriteLog(strErr);
 				return false;
 			}
 			else
@@ -104,7 +107,10 @@ bool GLAData::IsInvalid(CString& strFile, int& stLen)
 		else
 		{
 			DWORD dwError = ::GetLastError();
-			TRACE(_T("IsInvalid --- open file failed.(Error:%d, path:%s)\n"), dwError, strFile);
+			//TRACE(_T("IsInvalid --- open file failed.(Error:%d, path:%s)\n"), dwError, strFile);
+			CString strErr;
+			strErr.Format(_T("IsInvalid --- open file failed.(Error:%d, path:%s)\n"), dwError, strFile);
+			WriteLog(strErr);
 		}
 		return false;
 	}
@@ -112,7 +118,10 @@ bool GLAData::IsInvalid(CString& strFile, int& stLen)
 	{
 		TCHAR szError[MAX_PATH_LEN];
 		e->GetErrorMessage(szError, MAX_PATH_LEN);
-		TRACE(_T("CFileException catched. [%s]\n"), szError);
+		//TRACE(_T("CFileException catched. [%s]\n"), szError);
+		CString strErr;
+		strErr.Format(_T("CFileException catched. [%s]\n"), szError);
+		WriteLog(strErr);
 		return false;
 	}
 	return true;
@@ -170,7 +179,7 @@ void GLAData::ReadGLA01()
 	try
 	{
 		CString strOutput;
-		strOutput.Format(_T("./DataFile01%s.txt"), m_strMark);
+		strOutput.Format(_T("./DataFile01_%s.txt"), m_strMark);
 		if (!m_DataFile01.Open(strOutput, CFile::modeCreate | CFile::modeReadWrite | CFile::shareDenyNone))
 		{
 			DWORD dwError = ::GetLastError();
@@ -205,7 +214,11 @@ void GLAData::ReadGLA01()
 
 			if (strTemp.CompareNoCase(_T("GLA01")) == 0)
 			{
-				if (strName.Find(m_strMark) > 0)
+				iPos = strName.Find(_T('_'), iPos + 1);
+				int iPos2 = strName.Find(_T('_'), iPos+1);
+				CString strMark = strName.Mid(iPos + 1, iPos2 - iPos - 1);
+
+				if (m_strMark.CompareNoCase(strMark) == 0)
 				{
 					int it = 0;
 					int iHeader = 0, istLen = 0;
@@ -343,9 +356,10 @@ void GLAData::ReadGLA14()
 			{
 				iPos = strName.Find(_T('_'), iPos + 1);
 				int iPos2 = strName.Find(_T('_'), iPos+1);
-				iPos2 = strName.Find(_T('_'), iPos2+1);
-				iPos2 = strName.Find(_T('_'), iPos2+1);
-				m_strMark = strName.Mid(iPos, iPos2 - iPos);
+				//iPos2 = strName.Find(_T('_'), iPos2+1);
+				//iPos2 = strName.Find(_T('_'), iPos2+1);
+				// ipos2-1, ipos + 1
+				m_strMark = strName.Mid(iPos + 1, iPos2 - iPos - 1);
 				int it = 0;
 				int iHeader = 0, istLen = 0;
 				GetLength(strFile, iHeader, istLen);
