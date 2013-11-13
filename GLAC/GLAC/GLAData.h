@@ -48,6 +48,9 @@ private:
 	CString m_strMark;
 	int m_iLatMin,m_iLatMax,m_iLonMin, m_iLonMax;
 
+	//
+	int m_indexMin;
+	int m_indexMax;
 public:
 	bool Init();
 

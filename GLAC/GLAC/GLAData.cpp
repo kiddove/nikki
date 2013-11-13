@@ -175,6 +175,8 @@ void GLAData::GetLength(CString& strFile, int& headLen, int& stLen)
 
 void GLAData::ReadGLA01()
 {
+	m_indexMin = INT_MAX;
+	m_indexMax = INT_MIN;
 	// output file
 	try
 	{
@@ -248,7 +250,7 @@ void GLAData::ReadGLA01()
 								delete pBuffer;
 								f.Close();
 								CString strInfo;
-								strInfo.Format(_T("\ntotal %d record in file : %s\n\n\n"), m_iCount01, strFile);
+								strInfo.Format(_T("\ntotal %d record in file : %s, max : %d, min : %d\n\n\n"), m_iCount01, strFile, m_indexMax, m_indexMin);
 								m_DataFile01.WriteString(strInfo);
 							}
 							else
@@ -285,7 +287,7 @@ void GLAData::ReadGLA01()
 								delete pBuffer;
 								f.Close();
 								CString strInfo;
-								strInfo.Format(_T("\ntotal %d record in file : %s\n\n\n"), m_iCount01, strFile);
+								strInfo.Format(_T("\ntotal %d record in file : %s, max : %d, min : %d\n\n\n"), m_iCount01, strFile, m_indexMax, m_indexMin);
 								m_DataFile01.WriteString(strInfo);
 							}
 							else
@@ -467,6 +469,12 @@ void GLAData::TraversalData14_Little(char *pBuffer)
 	GLA14* pData = (GLA14*)pBuffer;
 	bool bMark = false;
 
+	for (int i = 0; i < 40; i ++)
+	{
+		if (pData->i_FRir_qaFlag[i] != 15)
+			return;
+	}
+
 	for (int i = 0; i < 40; i++)
 	{
 		int iLat = htonl(pData->i_lat[i]);
@@ -475,6 +483,7 @@ void GLAData::TraversalData14_Little(char *pBuffer)
 		if (m_iLatMin <= iLat && iLat <= m_iLatMax 
 			&& m_iLonMin <= iLon && iLon <= m_iLonMax)
 		{
+			
 			bMark = true;
 		}
 	}
@@ -510,6 +519,7 @@ void GLAData::PrintData14_Little(char* pBuffer)
 
 	m_Search_Rec_Index.insert(htonl(pData->i_rec_ndx));
 
+	return;
 	//i_UTCTime[2];
 	for (int i = 0; i < 2; i++)
 	{
@@ -1167,7 +1177,7 @@ void GLAData::PrintData14_Little(char* pBuffer)
 	//i_FRir_gaFlag[40]
 	for (int i = 0; i < 40; i++)
 	{
-		strOutput.Format(_T("i_FRir_gaFlag[%.2d] : %d\n"), i, pData->i_FRir_gaFlag[i]);
+		strOutput.Format(_T("i_FRir_qaFlag[%.2d] : %d\n"), i, pData->i_FRir_qaFlag[i]);
 		m_DataFile14.WriteString(strOutput);
 	}
 	iCount ++;
@@ -1295,11 +1305,15 @@ void GLAData::TraversalData01_Little(char *pBuffer)
 	GLA01_SHORT* pData = (GLA01_SHORT*)pBuffer;
 	short iType = htons(pData->i_gla01_rectype);
 
-	if (iType == 3)
-	{
+	//if (iType == 3)
+	//{
 		// short
 		
 		int iIndex = htonl(pData->i_rec_ndx);
+		//TRACE("%d\n", iIndex);
+
+		m_indexMin = iIndex < m_indexMin ? iIndex : m_indexMin;
+		m_indexMax = iIndex > m_indexMax ? iIndex : m_indexMax;
 
 		std::set<int>::iterator iter = m_Search_Rec_Index.find(iIndex);
 		if (iter != m_Search_Rec_Index.end())
@@ -1313,7 +1327,7 @@ void GLAData::TraversalData01_Little(char *pBuffer)
 			m_iCount01++;
 			PrintData01_Little(pBuffer);
 		}
-	}
+	//}
 }
 
 void GLAData::PrintData01_Little(char* pBuffer)
@@ -1481,7 +1495,13 @@ void GLAData::TraversalData14_Big(char *pBuffer)
 {
 	GLA14* pData = (GLA14*)pBuffer;
 	bool bMark = false;
-
+	
+	for (int i = 0; i < 40; i ++)
+	{
+		if (pData->i_FRir_qaFlag[i] != 15)
+			return;
+	}
+	
 	for (int i = 0; i < 40; i++)
 	{
 		int iLat = pData->i_lat[i];
@@ -1524,6 +1544,7 @@ void GLAData::PrintData14_Big(char* pBuffer)
 
 	m_Search_Rec_Index.insert(pData->i_rec_ndx);
 
+	return;
 	//i_UTCTime[2];
 	for (int i = 0; i < 2; i++)
 	{
@@ -2181,7 +2202,7 @@ void GLAData::PrintData14_Big(char* pBuffer)
 	//i_FRir_gaFlag[40]
 	for (int i = 0; i < 40; i++)
 	{
-		strOutput.Format(_T("i_FRir_gaFlag[%.2d] : %d\n"), i, pData->i_FRir_gaFlag[i]);
+		strOutput.Format(_T("i_FRir_qaFlag[%.2d] : %d\n"), i, pData->i_FRir_qaFlag[i]);
 		m_DataFile14.WriteString(strOutput);
 	}
 	iCount ++;
@@ -2309,10 +2330,12 @@ void GLAData::TraversalData01_Big(char *pBuffer)
 	GLA01_SHORT* pData = (GLA01_SHORT*)pBuffer;
 	short iType = htons(pData->i_gla01_rectype);
 
-	if (iType == 3)
-	{
+	//if (iType == 3)
+	//{
 		// short
 		int iIndex = pData->i_rec_ndx;
+		m_indexMin = iIndex < m_indexMin ? iIndex : m_indexMin;
+		m_indexMax = iIndex > m_indexMax ? iIndex : m_indexMax;
 
 		std::set<int>::iterator iter = m_Search_Rec_Index.find(iIndex);
 		if (iter != m_Search_Rec_Index.end())
@@ -2326,7 +2349,7 @@ void GLAData::TraversalData01_Big(char *pBuffer)
 			m_iCount01++;
 			PrintData01_Big(pBuffer);
 		}
-	}
+	//}
 }
 
 void GLAData::PrintData01_Big(char* pBuffer)
@@ -2344,6 +2367,7 @@ void GLAData::PrintData01_Big(char* pBuffer)
 	strOutput.Format(_T("i_rec_ndx : %d\n"), pData->i_rec_ndx);
 	m_DataFile01.WriteString(strOutput);
 	iCount ++;
+
 
 	//i_UTCTime[2]
 	for (int i = 0; i < 2; i++)

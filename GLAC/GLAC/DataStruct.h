@@ -92,7 +92,7 @@ public:
 	short i_gval_rcv[40];     //40
 	short i_RecNrgAll[40];    //40
 	short i_FRir_cldtop[40];  //40
-	byte i_FRir_gaFlag[40];   //40
+	byte i_FRir_qaFlag[40];   //40
 	short i_atm_char_flag;
 	short i_atm_char_conf;
 	byte i_spare48[36];       //36
