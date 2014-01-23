@@ -288,6 +288,11 @@ void LASData::ReadDEM()
 	CStdioFile f;
 	memset(&m_DemHeader, 0, sizeof(DemHeader));
 
+	// y from max to min
+	// x from min to max
+	// first line is y_max [x_min, x_max]
+	// coller is lower left
+
 	try
 	{
 		if (f.Open(m_strDEMDataFile, CFile::modeRead))
@@ -339,7 +344,7 @@ void LASData::ReadDEM()
 			m_DemOriginal.clear();
 
 			double x = m_DemHeader.xllcorner;
-			double y = m_DemHeader.yllcorner;
+			double y = m_DemHeader.yllcorner + m_DemHeader.cellsize * m_DemHeader.nCols;
 			while (iFileLen - iRead > 0)
 			{
 				// records
@@ -366,7 +371,7 @@ void LASData::ReadDEM()
 					x += m_DemHeader.cellsize;
 				}
 				ASSERT(count == m_DemHeader.nRows);
-				y += m_DemHeader.cellsize;
+				y -= m_DemHeader.cellsize;
 				count_y++;
 			}
 
@@ -400,8 +405,8 @@ void LASData::Adjust()
 	for (int i = 0; i < m_LasOriginal.size(); i++)
 	{
 		// calculate the postion in m_DemOriginal
-		int x = (int)(m_LasOriginal[i].x - m_DemHeader.xllcorner) / m_DemHeader.cellsize;
-		int y = (int)(m_LasOriginal[i].y - m_DemHeader.yllcorner) / m_DemHeader.cellsize;
+		int x = (int)(m_LasOriginal[i].x - (int)m_DemHeader.xllcorner) / m_DemHeader.cellsize;
+		int y = m_DemHeader.nCols - (int)((fabs)(m_LasOriginal[i].y - (int)m_DemHeader.yllcorner)) / m_DemHeader.cellsize;
 		int position = x + y * m_DemHeader.nCols;
 
 		AdjustStorage as;
@@ -589,12 +594,181 @@ void LASData::LoadAdjust()
 #endif
 }
 
+//void LASData::Calculate()
+//{
+//	if (m_arrAdjust.empty())
+//		return;
+//
+//	CString strFile_avg, strFile_per;
+//	TCHAR szPath[MAX_PATH_LEN]={0};
+//	memset(szPath, 0, MAX_PATH_LEN);
+//	GetPrivateProfileString(_T("LAS"), _T("AdjustFilePath"), _T(""), szPath, sizeof(szPath), m_strIniFilePath);
+//
+//	CString strFile(szPath);
+//
+//	int iDot = strFile.Find(_T('.'));
+//	strFile_avg = strFile.Left(iDot);
+//	strFile_per = strFile.Left(iDot);
+//	strFile_avg += _T(".avg");
+//	strFile_per += _T(".per");
+//
+//	CStdioFile f_avg, f_per;
+//
+//	try
+//	{
+//		if (!f_avg.Open(strFile_avg, CFile::modeCreate | CFile::modeReadWrite | CFile::shareDenyNone))
+//		{
+//			CString strErr;
+//			strErr.Format(_T("CreateFile Failed[%s]!\n"), strFile_avg);
+//			WriteLog(strErr);
+//		}
+//		/*
+//		ncols         2501
+//		nrows         2501
+//		xllcorner     209999.7779319
+//		yllcorner     5509999.3899256
+//		cellsize      1
+//		NODATA_value  -9999
+//		*/
+//		CString strOut;
+//		strOut.Format(_T("ncols         %d\n"), m_arrAdjust[0].size());
+//		f_avg.WriteString(strOut);
+//		strOut.Format(_T("nrows         %d\n"), m_arrAdjust.size());
+//		f_avg.WriteString(strOut);
+//		strOut.Format(_T("xllcorner     %.2f\n"), m_resultHeader.min_x);
+//		f_avg.WriteString(strOut);
+//		strOut.Format(_T("yllcorner     %.2f\n"), m_resultHeader.min_y);
+//		f_avg.WriteString(strOut);
+//		strOut.Format(_T("cellsize      %d\n"), m_resultHeader.delta_x);
+//		f_avg.WriteString(strOut);
+//		strOut.Format(_T("NODATA_value  %d\n"), 0);
+//		f_avg.WriteString(strOut);
+//
+//	}
+//	catch(CFileException* e)
+//	{
+//		TCHAR szError[MAX_PATH_LEN];
+//		e->GetErrorMessage(szError, MAX_PATH_LEN);
+//		//TRACE(_T("CFileException catched. [%s]\n"), szError);
+//		CString strErr;
+//		strErr.Format(_T("CFileException catched. [%s]\n"), szError);
+//		WriteLog(strErr);
+//	}
+//
+//	try
+//	{
+//		if (!f_per.Open(strFile_per, CFile::modeCreate | CFile::modeReadWrite | CFile::shareDenyNone))
+//		{
+//			CString strErr;
+//			strErr.Format(_T("CreateFile Failed[%s]!\n"), strFile_per);
+//			WriteLog(strErr);
+//		}
+//
+//		CString strOut;
+//		strOut.Format(_T("ncols         %d\n"), m_arrAdjust[0].size());
+//		f_per.WriteString(strOut);
+//		strOut.Format(_T("nrows         %d\n"), m_arrAdjust.size());
+//		f_per.WriteString(strOut);
+//		strOut.Format(_T("xllcorner     %.2f\n"), m_resultHeader.min_x);
+//		f_per.WriteString(strOut);
+//		strOut.Format(_T("yllcorner     %.2f\n"), m_resultHeader.min_y);
+//		f_per.WriteString(strOut);
+//		strOut.Format(_T("cellsize      %d\n"), m_resultHeader.delta_x);
+//		f_per.WriteString(strOut);
+//		strOut.Format(_T("NODATA_value  %d\n"), 0);
+//		f_per.WriteString(strOut);
+//	}
+//	catch(CFileException* e)
+//	{
+//		TCHAR szError[MAX_PATH_LEN];
+//		e->GetErrorMessage(szError, MAX_PATH_LEN);
+//		//TRACE(_T("CFileException catched. [%s]\n"), szError);
+//		CString strErr;
+//		strErr.Format(_T("CFileException catched. [%s]\n"), szError);
+//		WriteLog(strErr);
+//	}
+//
+//	// y
+//	for (int i = 0; i< m_arrAdjust.size(); i++)
+//	{
+//		// x
+//		CString strAvg;
+//		CString strPer;
+//
+//		for (int j = 0; j < m_arrAdjust[i].size(); j++)
+//		{
+//			double sum_z = 0.0;
+//			int rcount = 0;
+//			int iCount = m_arrAdjust[i][j].size();
+//			//ASSERT(iCount > 0);
+//			if (iCount > 0)
+//			{
+//				for (int k = 0; k < iCount; k++)
+//				{
+//					// avg of z
+//					// ret=1 per
+//					if (m_arrAdjust[i][j][k].r == 1)
+//						rcount++;
+//					sum_z += m_arrAdjust[i][j][k].z;
+//				}
+//
+//				double avg_z = sum_z / iCount;
+//				double dp = ((double)rcount / (double)iCount) * 100.0;
+//				int percentage = int(dp);
+//				// output
+//				//m_resultHeader
+//				double ddddd = m_resultHeader.min_x + i * m_resultHeader.delta_x;
+//
+//				//CString strOut;
+//				//strOut.Format(_T("%.2f,%.2f,%.2f\n"), m_resultHeader.min_x + i * m_resultHeader.delta_x, m_resultHeader.min_y + j * m_resultHeader.delta_y, avg_z);
+//				//f_avg.WriteString(strOut);
+//
+//				//strOut.Format(_T("%.2f,%.2f,%d\n"), m_resultHeader.min_x + i * m_resultHeader.delta_x, m_resultHeader.min_y + j * m_resultHeader.delta_y, percentage);
+//				//f_per.WriteString(strOut);
+//				CString str;
+//				str.Format(_T("%.2f "), avg_z);
+//				strAvg += str;
+//
+//				str.Format(_T("%d "), percentage);
+//				strPer += str;
+//			}
+//			else
+//			{
+//				//CString strOut;
+//				//strOut.Format(_T("%.2f,%.2f,%.2f\n"), m_resultHeader.min_x + i * m_resultHeader.delta_x, m_resultHeader.min_y + j * m_resultHeader.delta_y, 0.0);
+//				//f_avg.WriteString(strOut);
+//
+//				//strOut.Format(_T("%.2f,%.2f,%d\n"), m_resultHeader.min_x + i * m_resultHeader.delta_x, m_resultHeader.min_y + j * m_resultHeader.delta_y, 0);
+//				//f_per.WriteString(strOut);
+//				CString str;
+//				str.Format(_T("%.2f "), 0.0);
+//				strAvg += str;
+//
+//				str.Format(_T("%d "), 0);
+//				strPer += str;
+//			}
+//		}
+//		strAvg.TrimRight();
+//		strAvg += _T("\n");
+//
+//		strPer.TrimRight();
+//		strPer += _T("\n");
+//
+//		f_avg.WriteString(strAvg);
+//		f_per.WriteString(strPer);
+//	}
+//
+//	f_avg.Close();
+//	f_per.Close();
+//
+//}
 void LASData::Calculate()
 {
 	if (m_arrAdjust.empty())
 		return;
 
-	CString strFile_avg, strFile_per;
+	//CString strFile_avg, strFile_per;
+	CString strFile_Height;
 	TCHAR szPath[MAX_PATH_LEN]={0};
 	memset(szPath, 0, MAX_PATH_LEN);
 	GetPrivateProfileString(_T("LAS"), _T("AdjustFilePath"), _T(""), szPath, sizeof(szPath), m_strIniFilePath);
@@ -602,19 +776,17 @@ void LASData::Calculate()
 	CString strFile(szPath);
 
 	int iDot = strFile.Find(_T('.'));
-	strFile_avg = strFile.Left(iDot);
-	strFile_per = strFile.Left(iDot);
-	strFile_avg += _T(".avg");
-	strFile_per += _T(".per");
+	strFile_Height = strFile.Left(iDot);
+	strFile_Height += _T(".hgt");
 
-	CStdioFile f_avg, f_per;
+	CStdioFile f_height;
 
 	try
 	{
-		if (!f_avg.Open(strFile_avg, CFile::modeCreate | CFile::modeReadWrite | CFile::shareDenyNone))
+		if (!f_height.Open(strFile_Height, CFile::modeCreate | CFile::modeReadWrite | CFile::shareDenyNone))
 		{
 			CString strErr;
-			strErr.Format(_T("CreateFile Failed[%s]!\n"), strFile_avg);
+			strErr.Format(_T("CreateFile Failed[%s]!\n"), strFile_Height);
 			WriteLog(strErr);
 		}
 		/*
@@ -627,17 +799,17 @@ void LASData::Calculate()
 		*/
 		CString strOut;
 		strOut.Format(_T("ncols         %d\n"), m_arrAdjust[0].size());
-		f_avg.WriteString(strOut);
+		f_height.WriteString(strOut);
 		strOut.Format(_T("nrows         %d\n"), m_arrAdjust.size());
-		f_avg.WriteString(strOut);
+		f_height.WriteString(strOut);
 		strOut.Format(_T("xllcorner     %.2f\n"), m_resultHeader.min_x);
-		f_avg.WriteString(strOut);
+		f_height.WriteString(strOut);
 		strOut.Format(_T("yllcorner     %.2f\n"), m_resultHeader.min_y);
-		f_avg.WriteString(strOut);
+		f_height.WriteString(strOut);
 		strOut.Format(_T("cellsize      %d\n"), m_resultHeader.delta_x);
-		f_avg.WriteString(strOut);
+		f_height.WriteString(strOut);
 		strOut.Format(_T("NODATA_value  %d\n"), 0);
-		f_avg.WriteString(strOut);
+		f_height.WriteString(strOut);
 
 	}
 	catch(CFileException* e)
@@ -650,112 +822,80 @@ void LASData::Calculate()
 		WriteLog(strErr);
 	}
 
-	try
-	{
-		if (!f_per.Open(strFile_per, CFile::modeCreate | CFile::modeReadWrite | CFile::shareDenyNone))
-		{
-			CString strErr;
-			strErr.Format(_T("CreateFile Failed[%s]!\n"), strFile_per);
-			WriteLog(strErr);
-		}
-
-		CString strOut;
-		strOut.Format(_T("ncols         %d\n"), m_arrAdjust[0].size());
-		f_per.WriteString(strOut);
-		strOut.Format(_T("nrows         %d\n"), m_arrAdjust.size());
-		f_per.WriteString(strOut);
-		strOut.Format(_T("xllcorner     %.2f\n"), m_resultHeader.min_x);
-		f_per.WriteString(strOut);
-		strOut.Format(_T("yllcorner     %.2f\n"), m_resultHeader.min_y);
-		f_per.WriteString(strOut);
-		strOut.Format(_T("cellsize      %d\n"), m_resultHeader.delta_x);
-		f_per.WriteString(strOut);
-		strOut.Format(_T("NODATA_value  %d\n"), 0);
-		f_per.WriteString(strOut);
-	}
-	catch(CFileException* e)
-	{
-		TCHAR szError[MAX_PATH_LEN];
-		e->GetErrorMessage(szError, MAX_PATH_LEN);
-		//TRACE(_T("CFileException catched. [%s]\n"), szError);
-		CString strErr;
-		strErr.Format(_T("CFileException catched. [%s]\n"), szError);
-		WriteLog(strErr);
-	}
-
+	
 	// y
 	for (int i = 0; i< m_arrAdjust.size(); i++)
 	{
 		// x
-		CString strAvg;
-		CString strPer;
-
+		CString strHeight;
 		for (int j = 0; j < m_arrAdjust[i].size(); j++)
 		{
 			double sum_z = 0.0;
-			int rcount = 0;
 			int iCount = m_arrAdjust[i][j].size();
+			std::vector<double> z_value;
 			//ASSERT(iCount > 0);
 			if (iCount > 0)
 			{
 				for (int k = 0; k < iCount; k++)
 				{
 					// avg of z
-					// ret=1 per
-					if (m_arrAdjust[i][j][k].r == 1)
-						rcount++;
 					sum_z += m_arrAdjust[i][j][k].z;
+					z_value.push_back(m_arrAdjust[i][j][k].z);
 				}
 
-				double avg_z = sum_z / iCount;
-				double dp = ((double)rcount / (double)iCount) * 100.0;
-				int percentage = int(dp);
-				// output
-				//m_resultHeader
-				double ddddd = m_resultHeader.min_x + i * m_resultHeader.delta_x;
+				double d6 = 1.0;
+				if (iCount >= 10)
+				{
+					double avg_z = sum_z / iCount;
+					// calculate height
+					// step 1 sort asc;
+					std::sort(z_value.begin(), z_value.end(), Compare_Double());
+					// step 2 avg_z
 
-				//CString strOut;
-				//strOut.Format(_T("%.2f,%.2f,%.2f\n"), m_resultHeader.min_x + i * m_resultHeader.delta_x, m_resultHeader.min_y + j * m_resultHeader.delta_y, avg_z);
-				//f_avg.WriteString(strOut);
+					// step 3 sd
+					int iSize = z_value.size();
+					double dSum2 = 0.0;
+					double dSum3 = 0.0;
+					double dSum4 = 0.0;
+					for (int i = 0; i < iSize; i++)
+					{
+						dSum2 += (z_value[i] - avg_z) * (z_value[i] - avg_z);
+						dSum3 += (z_value[i] - avg_z) * (z_value[i] - avg_z) * (z_value[i] - avg_z);
+						dSum4 += (z_value[i] - avg_z) * (z_value[i] - avg_z) * (z_value[i] - avg_z) * (z_value[i] - avg_z);
+					}
+					double sd = sqrt(dSum2 / (double)(iSize - 1));
+					// step 4 kurtosis
+					double kurtosis = dSum4 / ((double)(iSize - 1) * sd * sd * sd * sd); 
+					// step 5 skew 
+					double skew = dSum3 / ((double)(iSize - 1) * sd * sd * sd);
+					// step 6 P90
+					int iPos = (int)(0.5 + (double)iSize * 0.9);
+					double p90 = z_value[iPos - 1];
+					// step 7 D6
+					double dTemp = 0.6 * (iSize + 1);
+					int iTemp = (int)dTemp;
+					dTemp = dTemp - iTemp;
+					d6 = z_value[iTemp - 1] + dTemp * (z_value[iTemp] - z_value[iTemp - 1]);
+				}
 
-				//strOut.Format(_T("%.2f,%.2f,%d\n"), m_resultHeader.min_x + i * m_resultHeader.delta_x, m_resultHeader.min_y + j * m_resultHeader.delta_y, percentage);
-				//f_per.WriteString(strOut);
 				CString str;
-				str.Format(_T("%.2f "), avg_z);
-				strAvg += str;
-
-				str.Format(_T("%d "), percentage);
-				strPer += str;
+				str.Format(_T("%.2f "), d6);
+				strHeight += str;
 			}
 			else
 			{
-				//CString strOut;
-				//strOut.Format(_T("%.2f,%.2f,%.2f\n"), m_resultHeader.min_x + i * m_resultHeader.delta_x, m_resultHeader.min_y + j * m_resultHeader.delta_y, 0.0);
-				//f_avg.WriteString(strOut);
-
-				//strOut.Format(_T("%.2f,%.2f,%d\n"), m_resultHeader.min_x + i * m_resultHeader.delta_x, m_resultHeader.min_y + j * m_resultHeader.delta_y, 0);
-				//f_per.WriteString(strOut);
 				CString str;
 				str.Format(_T("%.2f "), 0.0);
-				strAvg += str;
-
-				str.Format(_T("%d "), 0);
-				strPer += str;
+				strHeight += str;
 			}
 		}
-		strAvg.TrimRight();
-		strAvg += _T("\n");
+		strHeight.TrimRight();
+		strHeight += _T("\n");
 
-		strPer.TrimRight();
-		strPer += _T("\n");
-
-		f_avg.WriteString(strAvg);
-		f_per.WriteString(strPer);
+		f_height.WriteString(strHeight);
 	}
 
-	f_avg.Close();
-	f_per.Close();
-
+	f_height.Close();
 }
 #endif
 

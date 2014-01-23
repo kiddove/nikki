@@ -1,4 +1,5 @@
 #pragma once
+#include "math.h"
 #include "DataStruct.h"
 #define MAX_PATH_LEN 1024
 #define CONFIG_FILE_NAME	"LAS.ini"

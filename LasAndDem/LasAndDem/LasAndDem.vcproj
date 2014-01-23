@@ -125,7 +125,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;DEM;ADJTXT"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"

@@ -549,4 +549,16 @@ public:
 	}
 };
 
+
+class Compare_Double {
+public:
+	bool operator () (const double & va1, const double & va2)
+	{
+		if (va2 - va1 > 0.00001)
+			return true;
+		else
+			return false;
+	}
+};
+
 #pragma pack()
