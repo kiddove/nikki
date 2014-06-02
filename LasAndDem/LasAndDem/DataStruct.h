@@ -448,6 +448,13 @@ struct LasStorage {
 	double y;		// y
 	double z;		// z
 	int r;			// return [0,4]
+
+	bool operator==(const LasStorage& ls) const
+	{
+		if (fabs(x - ls.x) < 0.0001 && fabs(y - ls.y) < 0.0001)
+			return true;
+		return false;
+	}
 };
 
 struct DemStorage {
@@ -462,6 +469,10 @@ struct DemHeader {
 	double xllcorner;
 	double yllcorner;
 	int cellsize;
+	double xmin;
+	double xmax;
+	double ymin;
+	double ymax;
 };
 struct AdjustStorage {
 	double x;

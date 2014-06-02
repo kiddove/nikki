@@ -1,0 +1,25 @@
+ENVI
+description = {
+  File Resize Result, x resize factor: 1.000000, y resize factor: 1.000000.
+  [Tue Nov 06 23:02:18 2007]}
+samples = 256
+lines   = 256
+bands   = 3
+header offset = 0
+file type = ENVI Standard
+data type = 4
+interleave = bsq
+sensor type = AISA
+byte order = 0
+x start = 39
+y start = 128
+map info = {UTM, 1.000, 1.000, 500483.062, 5856584.177, 3.8000000000e+000, 3.8000000000e+000, 12, North, WGS-84, units=Meters}
+wavelength units = Nanometers
+band names = {
+ Resize (Resize (Georef (Emp Line (Band 69:0901-1742_Z1-2_Rad.img):0901-1742_Z1-2_Rad_EL.img):0901-1742_Z1-2_Rad_EL_Geo.img):DRDC.img), 
+ Resize (Resize (Georef (Emp Line (Band 124:0901-1742_Z1-2_Rad.img):0901-1742_Z1-2_Rad_EL.img):0901-1742_Z1-2_Rad_EL_Geo.img):DRDC.img), 
+ Resize (Resize (Georef (Emp Line (Band 174:0901-1742_Z1-2_Rad.img):0901-1742_Z1-2_Rad_EL.img):0901-1742_Z1-2_Rad_EL_Geo.img):DRDC.img)}
+wavelength = {
+ 549.390015, 680.270020, 800.750000}
+fwhm = {
+ 2.350000, 2.390000, 2.440000}

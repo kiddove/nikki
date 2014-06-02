@@ -337,6 +337,34 @@ void LASData::ReadDEM()
 			// NODATA_value
 			strContent.Empty();
 			f.ReadString(strContent);
+			////xmin
+			//strContent.Empty();
+			//f.ReadString(strContent);
+			//strValue = strContent.Right(strContent.GetLength() - strlen(_T("xmin")));
+			//strValue.Trim();
+			//m_DemHeader.xmin = atof(strValue.GetBuffer());
+			//strValue.ReleaseBuffer();
+			////xmax
+			//strContent.Empty();
+			//f.ReadString(strContent);
+			//strValue = strContent.Right(strContent.GetLength() - strlen(_T("xmax")));
+			//strValue.Trim();
+			//m_DemHeader.xmax = atof(strValue.GetBuffer());
+			//strValue.ReleaseBuffer();
+			////ymin
+			//strContent.Empty();
+			//f.ReadString(strContent);
+			//strValue = strContent.Right(strContent.GetLength() - strlen(_T("ymin")));
+			//strValue.Trim();
+			//m_DemHeader.ymin = atof(strValue.GetBuffer());
+			//strValue.ReleaseBuffer();
+			////ymax
+			//strContent.Empty();
+			//f.ReadString(strContent);
+			//strValue = strContent.Right(strContent.GetLength() - strlen(_T("ymax")));
+			//strValue.Trim();
+			//m_DemHeader.ymax = atof(strValue.GetBuffer());
+			//strValue.ReleaseBuffer();
 
 			int iRead = f.Seek(0, CFile::current);
 			int count_y = 0;
@@ -414,6 +442,10 @@ void LASData::Adjust()
 		as.y = m_LasOriginal[i].y;
 		as.r = m_LasOriginal[i].r;
 		as.z = m_LasOriginal[i].z - m_DemOriginal[position].z;
+
+		//if (as.x > m_DemHeader.xmin && as.x < m_DemHeader.xmax
+		//	&& as.y > m_DemHeader.ymin && as.y < m_DemHeader.ymax
+		//	&& as.z > 0.0 && as.z < 50.0)
 		if (as.z > 0.0 && as.z < 50.0)
 			m_Adjust.push_back(as);
 	}
