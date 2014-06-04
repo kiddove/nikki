@@ -1,10 +1,11 @@
-// calGLCMDlg.cpp : implementation file
+// SegmetationDlg.cpp : implementation file
 //
 
 #include "stdafx.h"
-#include "calGLCM.h"
-#include "calGLCMDlg.h"
-#include "GLCMData.h"
+#include "Segmetation.h"
+#include "SegmetationDlg.h"
+
+#include "Datafile.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -42,23 +43,23 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
 END_MESSAGE_MAP()
 
 
-// CcalGLCMDlg dialog
+// CSegmetationDlg dialog
 
 
 
 
-CcalGLCMDlg::CcalGLCMDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CcalGLCMDlg::IDD, pParent)
+CSegmetationDlg::CSegmetationDlg(CWnd* pParent /*=NULL*/)
+	: CDialog(CSegmetationDlg::IDD, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
-void CcalGLCMDlg::DoDataExchange(CDataExchange* pDX)
+void CSegmetationDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CcalGLCMDlg, CDialog)
+BEGIN_MESSAGE_MAP(CSegmetationDlg, CDialog)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
@@ -66,9 +67,9 @@ BEGIN_MESSAGE_MAP(CcalGLCMDlg, CDialog)
 END_MESSAGE_MAP()
 
 
-// CcalGLCMDlg message handlers
+// CSegmetationDlg message handlers
 
-BOOL CcalGLCMDlg::OnInitDialog()
+BOOL CSegmetationDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
@@ -97,32 +98,15 @@ BOOL CcalGLCMDlg::OnInitDialog()
 
 	// TODO: Add extra initialization here
 
-	std::vector<int> v1;
-	v1.push_back(1);
-	v1.push_back(3);
-	v1.push_back(5);
-	v1.push_back(7);
-
-	std::vector<int> v2;
-	v2.push_back(2);
-	v2.push_back(24);
-	v2.push_back(6);
-	v2.push_back(8);
-
-	v1.insert(v1.end(), v2.begin(), v2.end());
-	CalCondition con;
-	con.angle = 0;
-	con.distance = 1;
-	con.graynum = 16;
-	con.x = 5;
-	con.y = 5;
-	GLCMData gData;
-	gData.LoadFromFile(_T("E:\\Code\\Github\\nikki\\GLCM\\s41.tif"));
-	gData.calGLCM(con);
+	Datafile df;
+	df.OpenFile("E:\\Files\\tif\\segment\\s41.tif");
+	df.Process();
+	//df.LoadFile("E:\\Code\\Github\\nikki\\GLCM\\s41nir.tif");
+	//df.LoadFile("E:\\IMG_0847.JPG");
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
-void CcalGLCMDlg::OnSysCommand(UINT nID, LPARAM lParam)
+void CSegmetationDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
 	if ((nID & 0xFFF0) == IDM_ABOUTBOX)
 	{
@@ -139,7 +123,7 @@ void CcalGLCMDlg::OnSysCommand(UINT nID, LPARAM lParam)
 //  to draw the icon.  For MFC applications using the document/view model,
 //  this is automatically done for you by the framework.
 
-void CcalGLCMDlg::OnPaint()
+void CSegmetationDlg::OnPaint()
 {
 	if (IsIconic())
 	{
@@ -166,7 +150,7 @@ void CcalGLCMDlg::OnPaint()
 
 // The system calls this function to obtain the cursor to display while the user drags
 //  the minimized window.
-HCURSOR CcalGLCMDlg::OnQueryDragIcon()
+HCURSOR CSegmetationDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
