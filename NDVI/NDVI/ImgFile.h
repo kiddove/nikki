@@ -42,4 +42,6 @@ public:
 private:
 	GDALDataset* m_pDataset;
 	ImgInfo m_info;
+
+	LPVOID m_pData;
 };

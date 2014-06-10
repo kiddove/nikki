@@ -49,7 +49,7 @@
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -62,7 +62,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="opencv_highgui249d.lib opencv_core249d.lib"
+				AdditionalDependencies="opencv_highgui249.lib opencv_core249.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="E:\Code\lib\opencv\build\x86\vc10\lib"
 				GenerateDebugInformation="true"
@@ -117,7 +117,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="0"
+				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="E:\Code\lib\opencv\build\include\"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
@@ -125,7 +125,7 @@
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="2"
 				WarningLevel="3"
-				DebugInformationFormat="1"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"

@@ -12,7 +12,7 @@ class ImgData
 {
 public:
 	ImgData(void) {};
-	virtual ~ImgData(void) {};
+	virtual ~ImgData(void);
 
 public:
 	// load image data into vector
@@ -26,32 +26,38 @@ public:
 	{
 		threshold = t;
 	}
+
+	void Output();
 protected:
 	void LoadBand(GDALRasterBand* pBand);
 	// each pixel is a segment
 	void Initialize();
 
-	//void Findneighbours();
+	void UnInitialize();
 
-	void Findneighbours(Segment& s);
+	// only used when initialize
+	void Findneighbours(Segment& s, int r, int c);
+
+	void InitNeighbours();
 
 private:
 	// data[0][1][2] --- 0-band, 1-row(y), 2-col(x)
 	std::vector<std::vector<std::vector<T>>> data;
 	float threshold;
 
-	std::vector<Segment> segment;
+	// store all the segments (pointers)
+	std::vector<Segment*> segment;
 
 	int width;
 	int height;
 
-	bool IsAdjacent(Segment& s1, Segment& s2);
+	bool IsAdjacent(Segment* pSeg1, Segment* pSeg2);
 
-	float CalcEuclideanDistance(Segment& s1, Segment& s2);
+	float CalcEuclideanDistance(Segment* pSeg1, Segment* pSeg2);
 
-	Segment& FindMatch(Segment& s);
+	Segment* FindMatch(Segment* pSeg);
 
-	void MergeSegment(Segment& s1, Segment& s2);
+	void MergeSegment(Segment* pSeg1, Segment* pSeg2);
 
 	Segment segInvalid;
 

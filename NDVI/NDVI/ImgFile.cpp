@@ -129,6 +129,10 @@ void ImgFile::Process()
 			ImgData<byte> imgdata;
 			imgdata.LoadData(m_pDataset);
 			imgdata.CalcNDVI();
+			//ImgData<byte>* pData = new ImgData<byte>();
+			//pData->LoadData(m_pDataset);
+			//pData->CalcNDVI();
+			//m_pData = (LPVOID)pData;
 		}
 		break;
 	case GDT_UInt16:

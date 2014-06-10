@@ -12,16 +12,23 @@
 using namespace std;
 using namespace cv;
 
-const char* filename = "E:\\Code\\Github\\nikki\\GLCM\\s41nir.tif"; 
+//const char* filename = "E:\\Code\\Github\\nikki\\GLCM\\s41nir.tif"; 
+const char* filename = "E:\\IMG_0847.JPG";
 const CString output = "E:\\Code\\Github\\nikki\\GLCM\\result.txt";
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	//IplImage* dst = NULL;
-	IplImage* dst = cvLoadImage(filename,CV_LOAD_IMAGE_UNCHANGED);	
+	IplImage* dst = NULL;
+	//IplImage* dst = cvLoadImage(filename,CV_LOAD_IMAGE_UNCHANGED);	
 
-	Mat a (dst);
-
+	Mat a = imread(filename);
+	if (a.cols == 0)
+		return -1;
+	else
+	{
+		cout << "1" << endl;
+		return 2;
+	}
 	if (dst == NULL)
 		return -1;
 	int selSize = 51;	

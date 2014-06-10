@@ -44,11 +44,11 @@ public:
 	// calc Euclidean distance
 	void CalcEd();
 
-	// neighbour segments
-	std::vector<Segment> m_neighbours;
+	// store neighbour segment pointers
+
+	std::vector<int> m_neighbours;
 	// include pixels 
 	std::vector<Pixel> m_area;
-
 
 	// index in all segments
 	int m_iIndex;
