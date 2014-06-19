@@ -1,6 +1,52 @@
 #include "StdAfx.h"
 #include "Datafile.h"
 
+//CRITICAL_SECTION g_cs;
+//
+//HANDLE g_event_find;
+//HANDLE g_event_merge;
+
+bool lessRow(const Pixel& p1, const Pixel& p2)
+{
+	if (p1.row < p2.row)
+		return true;
+	return false;
+}
+
+bool lessCol(const Pixel& p1, const Pixel& p2)
+{
+	if (p1.col < p2.col)
+		return true;
+	return false;
+}
+
+
+// get cpu count
+int get_core_count()
+{
+	int iCount = 1;
+	SYSTEM_INFO si;
+	GetSystemInfo(&si);
+	iCount = si.dwNumberOfProcessors;
+	return iCount;
+}
+
+DWORD WINAPI ThreadProc_ProcessAll(LPVOID pParam)
+{
+	try
+	{
+		threadParam* p = (threadParam*)pParam;
+		InterfaceData* pData = p->pParam;
+		pData->ThreadProcessAll(p->start, p->end);
+		return 0x1001;
+	}
+	catch (std::exception e)
+	{
+		TRACE(_T("%s\n"), e.what());
+		return 0x2001;
+	}
+}
+
 Datafile::Datafile(void)
 {
 	m_strFile.Empty();
@@ -23,7 +69,7 @@ void Datafile::Close(void)
 	}
 }
 
-bool Datafile::OpenFile(LPTSTR strFilePath)
+bool Datafile::OpenFile(LPCTSTR strFilePath)
 {
 	m_pDataset = (GDALDataset*)GDALOpen(strFilePath, GA_ReadOnly);
 
@@ -40,7 +86,7 @@ bool Datafile::OpenFile(LPTSTR strFilePath)
 	return true;
 }
 
-void Datafile::Process()
+void Datafile::Process(std::vector<Pixel>& vecSeed, segCondition& con)
 {
 	int iRasterCount = m_pDataset->GetRasterCount();
 	if (iRasterCount < 1)
@@ -51,6 +97,10 @@ void Datafile::Process()
 	GDALRasterBand *poBand = m_pDataset->GetRasterBand(1);
 	GDALDataType iType = poBand->GetRasterDataType();
 
+	CString strOutput;
+	int ipos = m_strFile.ReverseFind(_T('.'));
+	strOutput = m_strFile.Left(ipos);
+	strOutput += _T(".txt");
 	switch (iType)
 	{
 	case GDT_UInt16:
@@ -58,7 +108,8 @@ void Datafile::Process()
 			ImgData<unsigned short> usData;
 			// load data
 			usData.LoadData(m_pDataset);
-			usData.Process();
+			usData.Process(vecSeed, con);
+			usData.Output(strOutput);
 			//usData.UnInitialize();
 			//return usData;
 		}
@@ -68,6 +119,8 @@ void Datafile::Process()
 			ImgData<short> sData;
 			// load data
 			sData.LoadData(m_pDataset);
+			sData.Process(vecSeed, con);
+			sData.Output(strOutput);
 			//return sData;
 		}
 		break;
@@ -76,6 +129,8 @@ void Datafile::Process()
 			ImgData<float> fData;
 			// load data
 			fData.LoadData(m_pDataset);
+			fData.Process(vecSeed, con);
+			fData.Output(strOutput);
 			//return sData;
 		}
 		break;
@@ -85,6 +140,8 @@ void Datafile::Process()
 			ImgData<byte> bData;
 			// load data
 			bData.LoadData(m_pDataset);
+			bData.Process(vecSeed, con);
+			bData.Output(strOutput);
 			//return bData;
 		}
 		break;
@@ -135,34 +192,110 @@ void ImgData<T>::LoadData(GDALDataset* pDataset)
 }
 
 template <class T>
-void ImgData<T>::Process()
+void ImgData<T>::Process(std::vector<Pixel>& vecSeed, segCondition& con)
 {
 	// segmentation
+	SetCondition(con);
+
 	Initialize();
 
 	InitNeighbours();
 
-	// for each segment
-	// 1. find neighbours
-	// 2. for each neighbour calced find the min, get the pixel of the min
-	// 3. calc of the min pixel neighbour
-	// 4. for each  calc ed get min
-	// 5. if mutual && < theshold
-	// 6. merge
+	ProcessviaSeed(vecSeed);
 
+	//// use multithreads
+	////int iThreadCount = get_core_count() * 2;
+	//int iThreadCount = 2;
+
+	//HANDLE * pHandle = new HANDLE[iThreadCount];
+	//threadParam* pThreadParam = new threadParam[iThreadCount];
+
+	//int iCount = (int)width * height;
+	//int iBlock = iCount / iThreadCount;
+	//for (int i = 0; i < iThreadCount; i++)
+	//{
+	//	DWORD dwThreadID = 0;
+	//	pThreadParam[i].pParam = (InterfaceData*)this;
+	//	pThreadParam[i].start = i * iBlock;
+	//	pThreadParam[i].end = (i + 1) * iBlock;
+
+	//	if (i == iThreadCount - 1)
+	//		pThreadParam[i].end = iCount;
+	//	pHandle[i] = CreateThread(NULL, 0, ThreadProc_ProcessAll, &pThreadParam[i], 0, &dwThreadID);
+	//	threadIDs.push_back(dwThreadID);
+	//	threads.push_back(pHandle[i]);
+	//}
+
+	//::WaitForMultipleObjects(iThreadCount, pHandle, TRUE, INFINITE);
+
+	//for (int i= 0; i < iThreadCount; i++)
+	//	::CloseHandle(pHandle[i]);
+	//delete[] pHandle;
+	//delete[] pThreadParam;
+
+
+	ProcessAll();
+
+//	ProcessviaArea();
+}
+
+
+template <class T>
+void ImgData<T>::ProcessviaSeed(std::vector<Pixel>& vecSeed)
+{
 	while (true)
 	{
 		bool bMatch = false;
-		for (int i = 0; i < segment.size(); i++)
+		for (int i = 0; i < (int)vecSeed.size(); i++)
+			//for (int i = 0; i < segment.size(); i++)
 		{
-			if (segment[i] == NULL)
+			// maybe several different ways
+			// for now start from bottom-left
+			// if start from top-left
+			//int iIndex = vecSeed[i].row * width + vecSeed[i].col;
+			// if start from bottom-left
+			ASSERT(vecSeed[i].row < height && vecSeed[i].col < width);
+			int iIndex = (height - 1 - vecSeed[i].row) * width + vecSeed[i].col;
+			if (segment[iIndex] == NULL || segment[iIndex]->m_iIndex == -1)
 				continue;
-			Segment* pSeg1 = FindMatch(segment[i]);
-			if (pSeg1 != NULL)
+			Segment* pSeg1 = FindMatch(segment[iIndex]);
+			if (pSeg1 != NULL && pSeg1->m_iIndex != -1)
 			{
 				Segment* pSeg2 = FindMatch(pSeg1);
 
-				if (pSeg2 != NULL)
+				if (pSeg2 != NULL && pSeg2->m_iIndex != -1)
+				{
+					if (segment[iIndex] == pSeg2)
+					{
+						// merge
+						MergeSegment(segment[iIndex], pSeg1);
+						bMatch = true;
+					}
+				}
+			}
+		}
+
+		if (!bMatch)
+			break;
+	}
+}
+
+template <class T>
+void ImgData<T>::ProcessAll()
+{
+	while (true)
+	{
+		bool bMatch = false;
+		for (int i = 0; i < (int)segment.size(); i++)
+		{
+			if (segment[i] == NULL || segment[i]->m_iIndex == -1)
+				continue;
+			Segment* pSeg1 = FindMatch(segment[i]);
+			if (pSeg1 != NULL && pSeg1->m_iIndex != -1)
+			{
+				Segment* pSeg2 = FindMatch(pSeg1);
+
+				if (pSeg2 != NULL && pSeg2->m_iIndex != -1)
 				{
 					if (segment[i] == pSeg2)
 					{
@@ -177,32 +310,68 @@ void ImgData<T>::Process()
 		if (!bMatch)
 			break;
 	}
+}
 
-	Output();
+template <class T>
+void ImgData<T>::ProcessviaArea()
+{
+	while (true)
+	{
+		bool bMatch = false;
+		for (int i = 0; i < (int)segment.size(); i++)
+		{
+			if (segment[i] == NULL || segment[i]->m_iIndex == -1)
+				continue;
+			Segment* pSeg1 = FindMatchviaArea(segment[i]);
+			if (pSeg1 != NULL && pSeg1->m_iIndex != -1)
+			{
+				Segment* pSeg2 = FindMatchviaArea(pSeg1);
+
+				if (pSeg2 != NULL && pSeg2->m_iIndex != -1)
+				{
+					if (segment[i] == pSeg2)
+					{
+						// merge
+						MergeSegment(segment[i], pSeg1);
+						bMatch = true;
+					}
+				}
+			}
+		}
+
+		if (!bMatch)
+			break;
+	}
 }
 
 template <class T>
 void ImgData<T>::Initialize()
 {
+	//InitializeCriticalSection(&g_cs);
+	//g_event_find = ::CreateEvent(NULL, TRUE, TRUE, NULL);
+	//g_event_merge = ::CreateEvent(NULL, TRUE, FALSE, NULL);
 	// clear all segments
 	segment.clear();
-	threshold = 20000;
+
+	invalidSegment.m_iIndex = -1;
+	invalidSegment.max_col = invalidSegment.max_row = invalidSegment.min_col = invalidSegment.min_row = 0;
+	//threshold = 20000;
 
 	// each pixel is assigned as a distinct segment
 	if (data.size() > 0)
 	{
 		int iNum = 0;
 		// row
-		for (int r = 0; r < data[0].size(); r++)
+		for (int r = 0; r < (int)data[0].size(); r++)
 		{
 			// col
-			for (int c = 0; c < data[0][r].size(); c++)
+			for (int c = 0; c < (int)data[0][r].size(); c++)
 			{
 				Segment* pSeg = new Segment(r, c);
 				//Segment s(r, c);
 				float f = 0.0f;
 				float v = 0.0f;
-				for (int k = 0; k < data.size(); k++)
+				for (int k = 0; k < (int)data.size(); k++)
 				{
 					f += data[k][r][c];
 					v += (data[k][r][c]) * (data[k][r][c]);
@@ -213,134 +382,139 @@ void ImgData<T>::Initialize()
 				}
 
 				pSeg->m_iIndex = iNum++;
+				pSeg->min_row = pSeg->max_row = r;
+				pSeg->min_col = pSeg->max_col = c;
 				segment.push_back(pSeg);
 			}
 		}
 	}
 }
 
-//template <class T>
-//void ImgData<T>::Findneighbours()
-//{
-//	// find neighbour pixels
-//	for (int i = 0; i < segment.size(); i++)
-//	{
-//		segment[i].m_neighbourpSeg>clear();
-//
-//		// find neighbour segments
-//
-//		for (int k = 0; k < segment.size(); k++)
-//		{
-//			// 1. not the same segment
-//			// 2. adjacent
-//			if (i != k && IsAdjacent(segment[i], segment[k]))
-//			{
-//				// push_back
-//				segment[i].m_neighbourpSeg>push_back(segment[k]);
-//			}
-//		}
-//	}
-//}
-
-template <class T>
-void ImgData<T>::Findneighbours(Segment& s, int r, int c)
-{
-	pSeg>m_neighbourpSeg>clear();
-
-	// find neighbour segments
-	// 8 directions
-	// r-1, c-1
-	if (r > 1 && c > 1)
-		pSeg>m_neighbourpSeg>push_back();
-	// r-1, c
-	// r-1, c+1
-	// r, c-1
-	// r, c+1
-	// r+1, c-1
-	// r+1, c
-	// r+1, c+1
-
-	for (int i = 0; i < segment.size(); i++)
-	{
-		// 1. not the same segment
-		// 2. adjacent
-		if (IsAdjacent(s, segment[i]))
-		{
-			// push_back
-			pSeg>m_neighbourpSeg>push_back(segment[i]);
-		}
-	}
-}
-
-template <class T>
-bool ImgData<T>::IsAdjacent(Segment* pSeg1, Segment* pSeg2)
-{
-	if (pSeg1 == NULL || pSeg2 == NULL)
-		return false;
-	for (int i = 0; i < pSeg1->m_area.size(); i++)
-	{
-		for (int j = 0; j < pSeg2->m_area.size(); j++)
-		{
-			if (abs(pSeg1->m_area[i].row - pSeg2->m_area[j].row) == 1
-				|| abs(pSeg1->m_area[i].col - pSeg2->m_area[j].col) == 1)
-				return true;
-		}
-	}
-	return false;
-}
-
 template <class T>
 float ImgData<T>::CalcEuclideanDistance(Segment* pSeg1, Segment* pSeg2)
 {
-
 	ASSERT(pSeg1->m_Avg.size() == pSeg2->m_Avg.size());
+	if (pSeg1->m_iIndex == -1 || pSeg2->m_iIndex == -1)
+		return 1e8;
 	// to be continued...
 	float f = 0.0f;
-	for (int i = 0; i < pSeg1->m_Avg.size(); i++)
+	for (int i = 0; i < (int)pSeg1->m_Avg.size(); i++)
 	{
 		f += (pSeg1->m_Avg[i] - pSeg2->m_Avg[i]) * (pSeg1->m_Avg[i] - pSeg2->m_Avg[i]);
 	}
-	float ed = sqrt(f);
+
+	//if (f < 0.1)
+	//{
+	//	CString str;
+	//	str.Format(_T("wtf --- f: %.3f, pSeg1: %d, pSeg2: %d\n"), f, pSeg1->m_iIndex, pSeg2->m_iIndex);
+	//	::OutputDebugString(str);
+	//}
+	float ed = 1e8;
+	try
+	{
+		ed = sqrt(f);
+	}
+	catch (std::exception e)
+	{
+		::OutputDebugString(e.what());
+		return ed;
+	}
+	return ed;
+}
+
+template <class T>
+float ImgData<T>::CalcNewCriteria(Segment* pSeg1, Segment* pSeg2)
+{
+	ASSERT(pSeg1->m_Avg.size() == pSeg2->m_Avg.size());
+	// to be continued...
+	int n1 = pSeg1->m_area.size();
+	int n2 = pSeg2->m_area.size();
+
+	float f = 0.0f;
+	for (int i = 0; i < (int)pSeg1->m_Avg.size(); i++)
+	{
+		float u = (n1 * pSeg1->m_Avg[i] + n2 * pSeg2->m_Avg[i]) / (float)(n1 + n2);
+		//f += (pSeg1->m_Avg[i] - pSeg2->m_Avg[i]) * (pSeg1->m_Avg[i] - pSeg2->m_Avg[i]);
+		f += (pSeg1->m_Avg[i] * pSeg1->m_Avg[i] * n1 + pSeg2->m_Avg[i] * pSeg2->m_Avg[i] * n2 - (n1 + n2) * u * u);
+	}
+	float ed = f / (float)pSeg1->m_Avg.size();
 	return ed;
 }
 
 template <class T>
 Segment* ImgData<T>::FindMatch(Segment* pSeg)
 {
-	if (pSeg != NULL)
+	//::WaitForSingleObject(g_event_find, INFINITE);
+	//::ResetEvent(g_event_merge);
+	
+	if (pSeg != NULL && pSeg->m_iIndex != -1)
 	{
 		float fEd_min = 1e8;
 		int index = -1;
-		for (int j = 0; j < pSeg->m_neighbours.size(); j++)
+
+		//::EnterCriticalSection(&pSeg->cs);
+		for (int j = 0; j < (int)pSeg->m_neighbours.size(); j++)
 		{
 			if (pSeg->m_neighbours[j] == NULL)
 				continue;
 			// calc
 			//<dynamic_cast>
 			Segment* p = (Segment*)(pSeg->m_neighbours[j]);
-			if (p == NULL)
+			//::EnterCriticalSection(&p->cs);
+			if (p == NULL || p->m_iIndex == -1)
+			{
+				//::LeaveCriticalSection(&p->cs);
 				continue;
+			}
+
+			// to change CalcEuclideanDistance to whatever you want
 			float fValue = CalcEuclideanDistance(pSeg, p);
+			//::LeaveCriticalSection(&p->cs);
+
+			//float fValue = CalcNewCriteria(pSeg, p);
 			// find min
-			if (fValue < fEd_min && fValue < threshold)
+			if (fValue < fEd_min && fValue < condition.threshold)
 			{
 				fEd_min = fValue;
 				index = p->m_iIndex;
 			}
 		}
-		if (index > 0)
+		if (index >= 0)
 		{
 			//TRACE(_T("%d match %d\n"), pSeg->m_iIndex, index);
+			//::SetEvent(g_event_merge);
+			//::LeaveCriticalSection(&g_cs_merge);
+			//::LeaveCriticalSection(&pSeg->cs);
 			return segment[index];
 		}
+		//::SetEvent(g_event_merge);
+		//::LeaveCriticalSection(&g_cs_merge);
+		//::LeaveCriticalSection(&pSeg->cs);
 	}
-
+	//::LeaveCriticalSection(&g_cs);
+	//::SetEvent(g_event_merge);
+	
 	return NULL;
 }
 
 template <class T>
 void ImgData<T>::MergeSegment(Segment* pSeg1, Segment* pSeg2)
 {
+	//::WaitForSingleObject(g_event_merge, INFINITE);
+	//::ResetEvent(g_event_find);
+	//::EnterCriticalSection(&g_cs);
+	//::EnterCriticalSection(&pSeg1->cs);
+	//::EnterCriticalSection(&pSeg2->cs);
+	if (pSeg1->m_iIndex == -1 || pSeg2->m_iIndex == -1)
+	{
+		//::SetEvent(g_event_find);
+		//::LeaveCriticalSection(&g_cs);
+		//::LeaveCriticalSection(&pSeg1->cs);
+		//::LeaveCriticalSection(&pSeg2->cs);
+		return;
+	}
+	
+
 	int n1 = pSeg1->m_area.size();
 	int n2 = pSeg2->m_area.size();
 
@@ -356,14 +530,14 @@ void ImgData<T>::MergeSegment(Segment* pSeg1, Segment* pSeg2)
 	// for each band
 
 
-	for (int i = 0; i < a1.size(); i++)
+	for (int i = 0; i < (int)a1.size(); i++)
 	{
 		float avg1 = a1[i];
 		float avg2 = a2[i];
 		float var1 = v1[i];
 		float var2 = v2[i];
 		float avg = 0.0;
-		avg= (avg1 * n1 + avg2 * n2) / (n1 + n2);
+		avg= (avg1 * n1 + avg2 * n2) / (float)(n1 + n2);
 		pSeg1->m_Avg[i] = avg;
 		pSeg1->m_Variance[i] = (n1 * var1 + n2 * var2) / (n1 + n2) + (n1 * avg1 * avg1 + n2 * avg2 * avg2) / (n1 + n2) - avg * avg;
 		//v1[i] = (n1 * v1 + n2 * v2) / (n1 + n2) + (n1 * a1 * a1 + n2 * a2 * a2) / (n1 + n2) - pSeg1->m_fAvg * pSeg1->m_fAvg;
@@ -379,14 +553,14 @@ void ImgData<T>::MergeSegment(Segment* pSeg1, Segment* pSeg2)
 	// change seg2 neighbours to seg1 
 
 	std::vector<int>::iterator iter = std::find(pSeg1->m_neighbours.begin(), pSeg1->m_neighbours.end(), (int)pSeg2);
-	if (iter != pSeg1->m_neighbours.end());
+	if (iter != pSeg1->m_neighbours.end())
 		pSeg1->m_neighbours.erase(iter);
 
 	iter = std::find(pSeg2->m_neighbours.begin(), pSeg2->m_neighbours.end(), (int)pSeg1);
-	if (iter != pSeg2->m_neighbours.end());
+	if (iter != pSeg2->m_neighbours.end())
 		pSeg2->m_neighbours.erase(iter);
 
-	for (int i = 0; i < pSeg2->m_neighbours.size(); i++)
+	for (int i = 0; i < (int)pSeg2->m_neighbours.size(); i++)
 	{
 		std::vector<int>::iterator iter1 = std::find(pSeg1->m_neighbours.begin(), pSeg1->m_neighbours.end(), pSeg2->m_neighbours[i]);
 		
@@ -394,7 +568,7 @@ void ImgData<T>::MergeSegment(Segment* pSeg1, Segment* pSeg2)
 			pSeg1->m_neighbours.push_back(pSeg2->m_neighbours[i]);
 
 		Segment* pSeg = (Segment*)(pSeg2->m_neighbours[i]);
-		if (pSeg == NULL)
+		if (pSeg == NULL || pSeg->m_iIndex == -1)
 			continue;
 
 		// 如果这里面已经有seg1了。。 就直接把seg2删掉
@@ -403,6 +577,10 @@ void ImgData<T>::MergeSegment(Segment* pSeg1, Segment* pSeg2)
 		std::vector<int>::iterator iter2 = std::find(pSeg->m_neighbours.begin(), pSeg->m_neighbours.end(), (int)pSeg2);
 
 		ASSERT(iter2 != pSeg->m_neighbours.end());
+		if (iter2 == pSeg->m_neighbours.end())
+		{
+			::OutputDebugString(_T("wtf\n"));
+		}
 
 		if (iter1 != pSeg->m_neighbours.end())
 			pSeg->m_neighbours.erase(iter2);
@@ -410,11 +588,27 @@ void ImgData<T>::MergeSegment(Segment* pSeg1, Segment* pSeg2)
 			*iter2 = (int)pSeg1;
 	}
 
-	segment[pSeg2->m_iIndex] = NULL;
+	
 
+	pSeg1->min_row = pSeg1->min_row < pSeg2->min_row ? pSeg1->min_row : pSeg2->min_row;
+	pSeg1->min_col = pSeg1->min_col < pSeg2->min_col ? pSeg1->min_col : pSeg2->min_col;
+
+	pSeg1->max_row = pSeg1->max_row > pSeg2->max_row ? pSeg1->max_row : pSeg2->max_row;
+	pSeg1->max_col = pSeg1->max_col > pSeg2->max_col ? pSeg1->max_col : pSeg2->max_col;
 	//TRACE(_T("merge %d to %d\n"), pSeg2->m_iIndex, pSeg1->m_iIndex);
+	segment[pSeg2->m_iIndex] = NULL;
 	delete pSeg2;
 	pSeg2 = NULL;
+
+	// for multithread NULL
+	//memcpy(pSeg2, &invalidSegment, sizeof(Segment));
+	//pSeg2->Clear();
+
+	//::SetEvent(g_event_find);
+	//::LeaveCriticalSection(&g_cs);
+
+	//::LeaveCriticalSection(&pSeg1->cs);
+	//::LeaveCriticalSection(&pSeg2->cs);
 }
 
 template <class T>
@@ -426,7 +620,7 @@ ImgData<T>::~ImgData()
 template <class T>
 void ImgData<T>::UnInitialize()
 {
-	for (int i = 0; i < segment.size(); i++)
+	for (int i = 0; i < (int)segment.size(); i++)
 	{
 		if (segment[i] != NULL)
 		{
@@ -434,12 +628,14 @@ void ImgData<T>::UnInitialize()
 			segment[i] = NULL;
 		}
 	}
+
+	//::DeleteCriticalSection(&g_cs);
 }
 
 template <class T>
 void ImgData<T>::InitNeighbours()
 {
-	for (int i = 0; i < segment.size(); i++)
+	for (int i = 0; i < (int)segment.size(); i++)
 	{
 		int r = segment[i]->m_area[0].row;
 		int c = segment[i]->m_area[0].col;
@@ -498,26 +694,29 @@ void ImgData<T>::InitNeighbours()
 }
 
 template <class T>
-void ImgData<T>::Output()
+void ImgData<T>::Output(CString& strFile)
 {
 	std::vector<std::vector<int>> vecResult;
 	std::vector<int> vecRow;
 	vecRow.assign(width, 0);
 	vecResult.assign(height, vecRow);
 
-	for (int i = 0; i < segment.size(); i++)
+	int iIndex = 0;
+	for (int i = 0; i < (int)segment.size(); i++)
 	{
-		if (segment[i] != NULL)
+		if (segment[i] != NULL && segment[i]->m_iIndex != -1)
 		{
-			for (int j = 0; j < segment[i]->m_area.size(); j++)
+			iIndex++;
+			for (int j = 0; j < (int)segment[i]->m_area.size(); j++)
 			{
-				vecResult[segment[i]->m_area[j].row][segment[i]->m_area[j].col] = segment[i]->m_iIndex;
+				//vecResult[segment[i]->m_area[j].row][segment[i]->m_area[j].col] = segment[i]->m_iIndex;
+				vecResult[segment[i]->m_area[j].row][segment[i]->m_area[j].col] = iIndex;
 			}
 		}
 	}
 
 	CStdioFile f;
-	f.Open(_T("E:\\result.txt"), CFile::modeCreate | CFile::modeReadWrite);
+	f.Open(strFile, CFile::modeCreate | CFile::modeReadWrite);
 
 	for (int i = 0; i < height; i++)
 	{
@@ -532,4 +731,111 @@ void ImgData<T>::Output()
 		f.WriteString(strRow);
 	}
 	f.Close();
+}
+
+template <class T>
+Segment* ImgData<T>::FindMatchviaArea(Segment* pSeg)
+{
+	if (pSeg != NULL && pSeg->m_iIndex != -1)
+	{
+		float fEd_min = 1e8;
+		int index = -1;
+		for (int j = 0; j < (int)pSeg->m_neighbours.size(); j++)
+		{
+			if (pSeg->m_neighbours[j] == NULL)
+				continue;
+			// calc
+			Segment* p = (Segment*)(pSeg->m_neighbours[j]);
+			if (p == NULL || p->m_iIndex == -1)
+				continue;
+
+			// to change CalcEuclideanDistance to whatever you want
+			//float fValue = CalcEuclideanDistance(pSeg, p);
+
+			float fValue = CalcShapefactor(pSeg, p);
+			// find min
+			if (fValue < fEd_min && fValue < condition.shapefactor)
+			{
+				fEd_min = fValue;
+				index = p->m_iIndex;
+			}
+		}
+		if (index >= 0)
+		{
+			//TRACE(_T("%d match %d\n"), pSeg->m_iIndex, index);
+			return segment[index];
+		}
+	}
+
+	return NULL;
+}
+
+template <class T>
+float ImgData<T>::CalcShapefactor(Segment* pSeg1, Segment* pSeg2)
+{
+	float sf = 1e8;
+
+	std::vector<Pixel> vecArea;
+	vecArea.insert(vecArea.end(), pSeg1->m_area.begin(), pSeg1->m_area.end());
+	vecArea.insert(vecArea.end(), pSeg2->m_area.begin(), pSeg2->m_area.end());
+
+	if (vecArea.empty())
+		return sf;
+
+	// sort is too slow
+	int iSize = vecArea.size();
+	//// sort 
+	//std::sort(vecArea.begin(), vecArea.end(), lessRow);
+	//int x = (vecArea[iSize - 1].row - vecArea[0].row + 1);
+
+	//std::sort(vecArea.begin(), vecArea.end(), lessCol);
+	//int y = (vecArea[iSize - 1].col - vecArea[0].col + 1);
+
+	int min_row = pSeg1->min_row < pSeg2->min_row ? pSeg1->min_row : pSeg2->min_row;
+	int min_col = pSeg1->min_col < pSeg2->min_col ? pSeg1->min_col : pSeg2->min_col;
+
+	int max_row = pSeg1->max_row > pSeg2->max_row ? pSeg1->max_row : pSeg2->max_row;
+	int max_col = pSeg1->max_col > pSeg2->max_col ? pSeg1->max_col : pSeg2->max_col;
+	
+	sf = (float)(iSize) / (float)((max_row - min_row + 1) * (max_col - min_col + 1));
+	return sf;
+}
+
+template <class T>
+void ImgData<T>::ThreadProcessAll(int& start, int& end)
+{
+	int iRound = 0;
+	while (true)
+	{
+		TRACE(_T("Round: %d of [%d, %d]\n"), ++iRound, start, end);
+		bool bMatch = false;
+		for (int i = start; i < end; i++)
+		{
+			if (segment[i] == NULL || segment[i]->m_iIndex == -1)
+				continue;
+			Segment* pSeg1 = FindMatch(segment[i]);
+			if (pSeg1 != NULL && pSeg1->m_iIndex != -1)
+			{
+				Segment* pSeg2 = FindMatch(pSeg1);
+
+				if (pSeg2 != NULL && pSeg2->m_iIndex != -1)
+				{
+					if (segment[i] == pSeg2)
+					{
+						// merge
+						MergeSegment(segment[i], pSeg1);
+						bMatch = true;
+					}
+				}
+			}
+		}
+
+		if (!bMatch)
+			break;
+	}
+}
+
+template <class T>
+void ImgData<T>::ThreadProcessviaArea(int& start, int& end)
+{
 }

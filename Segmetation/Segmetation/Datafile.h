@@ -7,11 +7,34 @@
 
 #include "Segment.h"
 
-template <class T>
-class ImgData
+struct segCondition
+{
+	float threshold;
+	float shapefactor;
+};
+
+class InterfaceData
 {
 public:
-	ImgData(void) {};
+	//virtual void ProcessviaSeed(std::vector<Pixel>& vecSeed) = 0;
+
+	virtual void ThreadProcessAll(int& start, int& end) = 0;
+
+	virtual void ThreadProcessviaArea(int& start, int& end) = 0;
+};
+
+struct threadParam
+{
+	InterfaceData* pParam;
+	int start;
+	int end;
+};
+
+template <class T>
+class ImgData : public InterfaceData
+{
+public:
+	ImgData(void) { memset(&condition, 0, sizeof(segCondition)); };
 	virtual ~ImgData(void);
 
 public:
@@ -19,15 +42,15 @@ public:
 	void LoadData(GDALDataset* pDataset);
 
 	// 
-	void Process();
+	void Process(std::vector<Pixel>& vecSeed, segCondition& con);
 
 	// 
-	void SetThreshold(T& t)
+	void SetCondition(segCondition& con)
 	{
-		threshold = t;
+		memcpy(&condition, &con, sizeof(segCondition));
 	}
 
-	void Output();
+	void Output(CString& strFile);
 protected:
 	void LoadBand(GDALRasterBand* pBand);
 	// each pixel is a segment
@@ -35,15 +58,18 @@ protected:
 
 	void UnInitialize();
 
-	// only used when initialize
-	void Findneighbours(Segment& s, int r, int c);
-
 	void InitNeighbours();
 
+	void ProcessviaSeed(std::vector<Pixel>& vecSeed);
+
+	void ProcessAll();
+
+	void ProcessviaArea();
 private:
 	// data[0][1][2] --- 0-band, 1-row(y), 2-col(x)
 	std::vector<std::vector<std::vector<T>>> data;
-	float threshold;
+
+	segCondition condition;
 
 	// store all the segments (pointers)
 	std::vector<Segment*> segment;
@@ -51,16 +77,29 @@ private:
 	int width;
 	int height;
 
-	bool IsAdjacent(Segment* pSeg1, Segment* pSeg2);
-
 	float CalcEuclideanDistance(Segment* pSeg1, Segment* pSeg2);
+
+	float CalcNewCriteria(Segment* pSeg1, Segment* pSeg2);
 
 	Segment* FindMatch(Segment* pSeg);
 
 	void MergeSegment(Segment* pSeg1, Segment* pSeg2);
 
-	Segment segInvalid;
+	// 
+	Segment* FindMatchviaArea(Segment* pSeg);
+	float CalcShapefactor(Segment* pSeg1, Segment* pSeg2);
 
+	// thread
+	std::vector<HANDLE> threads;
+	std::vector<DWORD> threadIDs;
+
+	// invalid segment
+	Segment invalidSegment;
+
+public:
+	virtual void ThreadProcessAll(int& start, int& end);
+
+	virtual void ThreadProcessviaArea(int& start, int& end);
 };
 
 class Datafile
@@ -69,10 +108,11 @@ public:
 	Datafile(void);
 	virtual ~Datafile(void);
 
-	bool OpenFile(LPTSTR strFilePath);
+	bool OpenFile(LPCTSTR strFilePath);
 	void Close();
 
-	void Process();
+	//void Process();
+	void Process(std::vector<Pixel>& vecSeed, segCondition& con);
 
 private:
 	CString m_strFile;

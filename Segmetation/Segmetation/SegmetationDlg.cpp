@@ -5,8 +5,6 @@
 #include "Segmetation.h"
 #include "SegmetationDlg.h"
 
-#include "Datafile.h"
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -64,6 +62,11 @@ BEGIN_MESSAGE_MAP(CSegmetationDlg, CDialog)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	//}}AFX_MSG_MAP
+	ON_BN_CLICKED(IDC_BUTTON_SEED_FILE, &CSegmetationDlg::OnBnClickedButtonSeedFile)
+	ON_BN_CLICKED(IDC_BUTTON_IMG_FILE, &CSegmetationDlg::OnBnClickedButtonImgFile)
+	ON_BN_CLICKED(IDC_BUTTON_LOAD_SEED, &CSegmetationDlg::OnBnClickedButtonLoadSeed)
+	ON_BN_CLICKED(IDC_BUTTON_LOAD_IMG, &CSegmetationDlg::OnBnClickedButtonLoadImg)
+	ON_BN_CLICKED(IDC_BUTTON_PROCESS, &CSegmetationDlg::OnBnClickedButtonProcess)
 END_MESSAGE_MAP()
 
 
@@ -98,11 +101,7 @@ BOOL CSegmetationDlg::OnInitDialog()
 
 	// TODO: Add extra initialization here
 
-	Datafile df;
-	df.OpenFile("E:\\Files\\tif\\segment\\s41.tif");
-	df.Process();
-	//df.LoadFile("E:\\Code\\Github\\nikki\\GLCM\\s41nir.tif");
-	//df.LoadFile("E:\\IMG_0847.JPG");
+	GetDlgItem(IDC_BUTTON_PROCESS)->EnableWindow(FALSE);
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -155,3 +154,115 @@ HCURSOR CSegmetationDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+void CSegmetationDlg::OnBnClickedButtonSeedFile()
+{
+	// TODO: Add your control notification handler code here
+	char szFilter[] = _T("Seed Files(*.txt)|*.txt|All Files(*.*)|*.*||");
+
+	CFileDialog dlg(TRUE, NULL, NULL, NULL, szFilter);
+
+	if (dlg.DoModal() == IDOK)
+	{
+		m_strSeedFile = dlg.GetPathName();
+	}
+
+	GetDlgItem(IDC_EDIT_SEED_FILE)->SetWindowText(m_strSeedFile);
+}
+
+void CSegmetationDlg::OnBnClickedButtonImgFile()
+{
+	// TODO: Add your control notification handler code here
+	//char szFilter[] = _T("Image Files(*.tif)|*.tif|All Files(*.*)|*.*||");
+	char szFilter[] = _T("Image Files(*.*)|*.*||");
+
+	CFileDialog dlg(TRUE, NULL, NULL, NULL, szFilter);
+
+	if (dlg.DoModal() == IDOK)
+	{
+		m_strImgFile = dlg.GetPathName();
+	}
+
+	GetDlgItem(IDC_EDIT_IMG_FILE)->SetWindowText(m_strImgFile);
+}
+
+void CSegmetationDlg::OnBnClickedButtonLoadSeed()
+{
+	// TODO: Add your control notification handler code here
+	// space seperated two float
+
+	if (m_strSeedFile.IsEmpty())
+	{
+		AfxMessageBox(_T("Please Choose a Seed file first~!"));
+	}
+	
+	CStdioFile fSeed;
+	if (fSeed.Open(m_strSeedFile, CFile::modeRead))
+	{
+		m_vecSeed.clear();
+		CString strContent;
+		while (fSeed.ReadString(strContent))
+		{
+			strContent.Trim();
+			CString str;
+			int i = 0;
+			//while (AfxExtractSubString(str, strContent, i, _T(' ')))
+			//{
+			//	TRACE(_T("%d, %s\n"), i, str);
+			//	i++;
+			//}
+			Pixel p;
+
+			// start from bottom-left, col comes first
+			// if start from top-left, row comes first
+			AfxExtractSubString(str, strContent, i, _T(' '));
+			p.col = (int)atof(str);
+			i++;
+			AfxExtractSubString(str, strContent, i, _T(' '));
+			p.row = (int)atof(str);
+
+			m_vecSeed.push_back(p);
+		}
+		fSeed.Close();
+
+		AfxMessageBox(_T("Seed File Loaded~!"));
+	}
+	else
+	{
+		// to be continued..
+		// log the error
+	}
+}
+
+void CSegmetationDlg::OnBnClickedButtonLoadImg()
+{
+	// TODO: Add your control notification handler code here
+	m_datafile.Close();
+	if (m_datafile.OpenFile(m_strImgFile))
+	{
+		AfxMessageBox(_T("Image File Loaded~!"));
+		GetDlgItem(IDC_BUTTON_PROCESS)->EnableWindow(TRUE);
+	}
+}
+
+void CSegmetationDlg::OnBnClickedButtonProcess()
+{
+	// TODO: Add your control notification handler code here
+
+	CString str;
+	GetDlgItem(IDC_EDIT_THRESHOLD)->GetWindowText(str);
+	m_con.threshold = (float)atof(str);
+
+	if (m_con.threshold <= 0.0000001)
+	{
+		AfxMessageBox(_T("Invalid Threshold"));
+		return;
+	}
+
+	GetDlgItem(IDC_EDIT_SHAPE_FACTOR)->GetWindowText(str);
+	m_con.shapefactor = (float)atof(str);
+
+	m_datafile.Process(m_vecSeed, m_con);
+
+	AfxMessageBox("Finished~!");
+}

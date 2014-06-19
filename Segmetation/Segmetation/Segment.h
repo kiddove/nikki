@@ -4,9 +4,15 @@
 
 // only contain position informations
 
+
 struct Pixel
 {
 public:
+	Pixel()
+	{
+		row = 0;
+		col = 0;
+	}
 	Pixel(int r, int c)
 	{
 		row = r;
@@ -19,6 +25,21 @@ public:
 	{
 		return row == obj.row && col == obj.col;
 	}
+
+	//bool operator < (const Pixel& p) const
+	//{
+	//	if (row < p.row)
+	//	{
+	//		return true;
+	//	}
+	//	else if (row == p.row)
+	//	{
+	//		if (col < p.col)
+	//			return true;
+	//	}
+
+	//	return false;
+	//}
 };
 
 class Segment
@@ -26,6 +47,7 @@ class Segment
 public:
 	Segment(void);
 	virtual ~Segment(void);
+
 	Segment(int r, int c)
 	{
 		if (r >= 0 && c >= 0)
@@ -41,6 +63,15 @@ public:
 		m_area.push_back(p);
 	}
 
+	void Clear()
+	{
+		m_iIndex = -1;
+		min_row = min_col = max_row = max_col = 0;
+		m_neighbours.clear();
+		m_area.clear();
+		m_Avg.clear();
+		m_Variance.clear();
+	}
 	// calc Euclidean distance
 	void CalcEd();
 
@@ -59,5 +90,10 @@ public:
 	//float m_fAvg;
 	//float m_fVariance;
 
+	int min_row;
+	int max_row;
+	int min_col;
+	int max_col;
 
+	::CRITICAL_SECTION cs;
 };

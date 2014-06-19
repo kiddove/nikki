@@ -3,10 +3,12 @@
 
 Segment::Segment(void)
 {
+	//::InitializeCriticalSection(&cs);
 }
 
 Segment::~Segment(void)
 {
+	//::DeleteCriticalSection(&cs);
 }
 
 //float Segment::GetAvfValue()

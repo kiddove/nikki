@@ -12,8 +12,8 @@
 using namespace std;
 using namespace cv;
 
-//const char* filename = "E:\\Code\\Github\\nikki\\GLCM\\s41nir.tif"; 
-const char* filename = "E:\\IMG_0847.JPG";
+const char* filename = "E:\\Code\\Github\\nikki\\GLCM\\s41nir.tif"; 
+//const char* filename = "E:\\IMG_0847.JPG";
 const CString output = "E:\\Code\\Github\\nikki\\GLCM\\result.txt";
 
 int _tmain(int argc, _TCHAR* argv[])
