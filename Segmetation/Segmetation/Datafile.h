@@ -3,9 +3,26 @@
 // use GDAL to open a image
 #include "gdal_priv.h"
 #include <vector>
+#include <set>
+#include <queue>
+#include <map>
 #include <algorithm>
 
 #include "Segment.h"
+
+//struct segLock
+//{
+//	CCriticalSection* pFindLock;
+//	CCriticalSection* pCountLock;
+//	CCriticalSection* pMergeLock;
+//	int iFindCount;
+//};
+
+struct Blockpair
+{
+	int i;
+	int j;
+};
 
 struct segCondition
 {
@@ -17,17 +34,26 @@ class InterfaceData
 {
 public:
 	//virtual void ProcessviaSeed(std::vector<Pixel>& vecSeed) = 0;
-
-	virtual void ThreadProcessAll(int& start, int& end) = 0;
+#ifdef MULTI_THREAD
+	virtual void ThreadProcessAll(int& row_start, int& row_end, int& col_start, int& col_end) = 0;
 
 	virtual void ThreadProcessviaArea(int& start, int& end) = 0;
+
+	//virtual void ThreadFind(int& start, int& end) = 0;
+
+	//virtual void ThreadMerge() = 0;
+#endif
 };
 
 struct threadParam
 {
+	// [start, end)
 	InterfaceData* pParam;
-	int start;
-	int end;
+	int row_start;
+	int row_end;
+
+	int col_start;
+	int col_end;
 };
 
 template <class T>
@@ -62,44 +88,74 @@ protected:
 
 	void ProcessviaSeed(std::vector<Pixel>& vecSeed);
 
-	void ProcessAll();
+	void ProcessAllSegment();
 
 	void ProcessviaArea();
 private:
 	// data[0][1][2] --- 0-band, 1-row(y), 2-col(x)
 	std::vector<std::vector<std::vector<T>>> data;
+#ifdef MULTI_THREAD
+	std::vector<Pixel> vecBoundary;
+private:
+	int rInterval;
+	int cInterval;
+	void Divide();
+	void SetBoundary();
+	void ClearBoundary();
+	void ProcessBoundary();
+	void ProcessviaMultiThread();
 
+	Segment* Original2BlockSegment(int& iBlockRow, int& iBlockCol, int& row_start, int& row_count, int& col_start, int& col_end);
+	Segment** RetriveBlock(int& row_start, int& row_end, int& col_start, int& col_end);
+	void ProcessBlock(Segment** pSegBlock, int& row_start, int& row_end, int& col_start, int& col_end);
+	void RestoreBlock(Segment** pSegBlock, int& row_start, int& row_end, int& col_start, int& col_end);
+	void DestroyBlock(Segment** pSegBlock, int& row_start, int& row_end, int& col_start, int& col_end);
+	int FindMatch(Segment** pSegBlock, int iIndex, int& row_start, int& row_end, int& col_start, int& col_end, int except = -1);
+	void MergeSegment(Segment** pSegBlock, int& iIndex1, int& iIndex2, int& row_start, int& row_end, int& col_start, int& col_end);
+	float CalcEuclideanDistance(Segment** pSegBlock, int iIndex1, int iIndex2);
+	float CalcNewCriteria(Segment** pSegBlock, int iIndex1, int iIndex2);
+
+	int Block2Original(int& iBlockIndex, int& row_start, int& row_end, int& col_start, int& col_end);
+	int Original2Block(int& iOriginalIndex, int& row_start, int& row_end, int& col_start, int& col_end);
+
+	void Block2OriginalSegment(Segment* pSegOriginal, Segment* pSegBlock, int& iBlockRow, int& iBlockCol, int& row_start, int& row_end, int& col_start, int& col_end);
+
+	std::queue<Blockpair> queBlock;
+	CCriticalSection queLock;
+#endif
 	segCondition condition;
 
 	// store all the segments (pointers)
-	std::vector<Segment*> segment;
+	//std::vector<Segment*> segment;
+	Segment** segment;
 
 	int width;
 	int height;
 
-	float CalcEuclideanDistance(Segment* pSeg1, Segment* pSeg2);
+	float CalcEuclideanDistance(int iIndex1, int iIndex2);
 
-	float CalcNewCriteria(Segment* pSeg1, Segment* pSeg2);
+	float CalcNewCriteria(int iIndex1, int iIndex2);
 
-	Segment* FindMatch(Segment* pSeg);
+	// return index
+	int FindMatch(int iIndex, int except = -1);
 
-	void MergeSegment(Segment* pSeg1, Segment* pSeg2);
+	void MergeSegment(int iIndex1, int iIndex2);
 
 	// 
 	Segment* FindMatchviaArea(Segment* pSeg);
 	float CalcShapefactor(Segment* pSeg1, Segment* pSeg2);
 
-	// thread
-	std::vector<HANDLE> threads;
-	std::vector<DWORD> threadIDs;
 
-	// invalid segment
-	Segment invalidSegment;
-
+#ifdef MULTI_THREAD
 public:
-	virtual void ThreadProcessAll(int& start, int& end);
+	virtual void ThreadProcessAll(int& row_start, int& row_end, int& col_start, int& col_end);
 
 	virtual void ThreadProcessviaArea(int& start, int& end);
+
+	//virtual void ThreadFind(int& start, int& end);
+
+	//virtual void ThreadMerge();
+#endif
 };
 
 class Datafile

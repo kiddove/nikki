@@ -4,6 +4,7 @@
 Segment::Segment(void)
 {
 	//::InitializeCriticalSection(&cs);
+	m_bBoundary = false;
 }
 
 Segment::~Segment(void)

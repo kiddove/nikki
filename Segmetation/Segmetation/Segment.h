@@ -1,9 +1,27 @@
 #pragma once
+#include "afxmt.h"
 #include <vector>
 #include <algorithm>
 
 // only contain position informations
+class Segment;
 
+struct Neighbour
+{
+	Segment* pSeg;
+	int iIndex;
+
+	// for find
+	bool operator==(const Neighbour& n) const
+	{
+		return iIndex == n.iIndex && pSeg == n.pSeg;
+	}
+	//// for sort
+	//bool operator < (const Neighbour& n) const
+	//{
+	//	return iIndex < n.iIndex;
+	//}
+};
 
 struct Pixel
 {
@@ -55,6 +73,7 @@ public:
 			m_area.clear();
 			Add(r, c);
 		}
+		m_bBoundary = false;
 	}
 
 	void Add(int r, int c)
@@ -72,11 +91,15 @@ public:
 		m_Avg.clear();
 		m_Variance.clear();
 	}
-	// calc Euclidean distance
-	void CalcEd();
+	
+	// lock / unlock neighbours
+	void LockNeighbours();
+	void UnlockNeighbours();
 
 	// store neighbour segment pointers
 
+	//std::vector<Segment*> m_neighbours;
+	//std::vector<Neighbour> m_neighbours;
 	std::vector<int> m_neighbours;
 	// include pixels 
 	std::vector<Pixel> m_area;
@@ -95,5 +118,5 @@ public:
 	int min_col;
 	int max_col;
 
-	::CRITICAL_SECTION cs;
+	bool m_bBoundary;
 };
