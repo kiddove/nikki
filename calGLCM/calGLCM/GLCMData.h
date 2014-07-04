@@ -20,11 +20,11 @@ struct CalCondition
 class GLCMData
 {
 public:
-	GLCMData(void);
+	GLCMData(CStdioFile* pFile);
 	~GLCMData(void);
 
 public:
-	bool LoadFromFile(LPTSTR strFilePath);
+	bool LoadFromFile(LPCTSTR strFilePath);
 
 	bool calGLCM(CalCondition& calCon);
 	void calGLCM8();
@@ -35,4 +35,5 @@ private:
 	CString m_strFilePath;
 	ImgInfo m_imgInfo;
 	CalCondition m_calCon;
+	CStdioFile* m_pOutput;
 };

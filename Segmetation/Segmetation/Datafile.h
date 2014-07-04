@@ -18,10 +18,18 @@
 //	int iFindCount;
 //};
 
+struct MergePair
+{
+	int m;
+	int n;
+};
+
 struct Blockpair
 {
-	int i;
-	int j;
+	int row_start;
+	int row_end;
+	int col_start;
+	int col_end;
 };
 
 struct segCondition
@@ -39,9 +47,9 @@ public:
 
 	virtual void ThreadProcessviaArea(int& start, int& end) = 0;
 
-	//virtual void ThreadFind(int& start, int& end) = 0;
+	virtual void ThreadFind() = 0;
 
-	//virtual void ThreadMerge() = 0;
+	virtual void ThreadMerge() = 0;
 #endif
 };
 
@@ -95,7 +103,6 @@ private:
 	// data[0][1][2] --- 0-band, 1-row(y), 2-col(x)
 	std::vector<std::vector<std::vector<T>>> data;
 #ifdef MULTI_THREAD
-	std::vector<Pixel> vecBoundary;
 private:
 	int rInterval;
 	int cInterval;
@@ -122,6 +129,15 @@ private:
 
 	std::queue<Blockpair> queBlock;
 	CCriticalSection queLock;
+	// to be merged
+	std::vector<MergePair> vecMerge;
+	CCriticalSection vecMergeLock;
+
+	HANDLE* pFindEventArray;
+	HANDLE mergeHandle;
+	std::map<DWORD, HANDLE> mapFindEvent;
+	bool bQuitFind;
+	bool bForceMerge;
 #endif
 	segCondition condition;
 
@@ -133,9 +149,10 @@ private:
 	int height;
 
 	float CalcEuclideanDistance(int iIndex1, int iIndex2);
+	float CalcEuclideanDistance(Segment* pSeg1, Segment* pSeg2);
 
 	float CalcNewCriteria(int iIndex1, int iIndex2);
-
+	float CalcNewCriteria(Segment* pSeg1, Segment* pSeg2);
 	// return index
 	int FindMatch(int iIndex, int except = -1);
 
@@ -152,9 +169,9 @@ public:
 
 	virtual void ThreadProcessviaArea(int& start, int& end);
 
-	//virtual void ThreadFind(int& start, int& end);
+	virtual void ThreadFind();
 
-	//virtual void ThreadMerge();
+	virtual void ThreadMerge();
 #endif
 };
 

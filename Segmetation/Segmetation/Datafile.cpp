@@ -4,6 +4,9 @@
 //#define THREAD_COUNT 9
 #define ROW_BLOCK	10
 #define COL_BLOCK	10
+#define THREAD_COUNT 4
+int g_count = 0;
+int g_time = 0;
 
 bool lessRow(const Pixel& p1, const Pixel& p2)
 {
@@ -44,37 +47,38 @@ DWORD WINAPI ThreadProcAll(LPVOID pParam)
 		return 0x2001;
 	}
 }
-//DWORD WINAPI ThreadProc_ProcessFind(LPVOID pParam)
-//{
-//	try
-//	{
-//		threadParam* p = (threadParam*)pParam;
-//		InterfaceData* pData = p->pParam;
-//		//pData->ThreadProcessAll(p->start, p->end);
-//		pData->ThreadFind(p->start, p->end);
-//		return 0x1001;
-//	}
-//	catch (std::exception e)
-//	{
-//		TRACE(_T("%s\n"), e.what());
-//		return 0x2001;
-//	}
-//}
-//
-//DWORD WINAPI ThreadProc_ProcessMerge(LPVOID pParam)
-//{
-//	try
-//	{
-//		InterfaceData* pData = (InterfaceData*)pParam;
-//		pData->ThreadMerge();
-//		return 0x1002;
-//	}
-//	catch (std::exception e)
-//	{
-//		TRACE(_T("%s\n"), e.what());
-//		return 0x2002;
-//	}
-//}
+
+DWORD WINAPI ThreadProc_ProcessFind(LPVOID pParam)
+{
+	try
+	{
+		threadParam* p = (threadParam*)pParam;
+		InterfaceData* pData = p->pParam;
+		pData->ThreadFind();
+		return 0x1001;
+	}
+	catch (std::exception e)
+	{
+		TRACE(_T("%s\n"), e.what());
+		return 0x2001;
+	}
+}
+
+DWORD WINAPI ThreadProc_ProcessMerge(LPVOID pParam)
+{
+	try
+	{
+		threadParam* p = (threadParam*)pParam;
+		InterfaceData* pData = p->pParam;
+		pData->ThreadMerge();
+		return 0x1002;
+	}
+	catch (std::exception e)
+	{
+		TRACE(_T("%s\n"), e.what());
+		return 0x2002;
+	}
+}
 #endif
 
 Datafile::Datafile(void)
@@ -211,6 +215,7 @@ template <class T>
 void ImgData<T>::LoadData(GDALDataset* pDataset)
 {
 	data.clear();
+	std::vector<std::vector<std::vector<T>>>().swap(data);
 	// band count
 	int iRasterCount = pDataset->GetRasterCount();
 	for (int i = 1; i <= iRasterCount; i++)
@@ -236,19 +241,19 @@ void ImgData<T>::Process(std::vector<Pixel>& vecSeed, segCondition& con)
 
 #ifdef MULTI_THREAD
 	int is = ::GetTickCount();
-	Divide();
-	ProcessBoundary();
-	SetBoundary();
+	//Divide();
+	//ProcessBoundary();
+	//SetBoundary();
 	ProcessviaMultiThread();
-	ClearBoundary();
+	//ClearBoundary();
 	int ie = ::GetTickCount();
 	CString ss;
 	ss.Format(_T("MultiThread cost time : %d(ms)\n"), ie - is);
 	::OutputDebugString(ss);
-#endif
+#else
 	
 	ProcessAllSegment();
-
+#endif
 	int i2 = ::GetTickCount();
 	CString str;
 	str.Format(_T("total time : %d(s)\n"), (i2 - i1) / 1000);
@@ -273,7 +278,7 @@ void ImgData<T>::ProcessviaSeed(std::vector<Pixel>& vecSeed)
 			// if start from bottom-left
 			ASSERT(vecSeed[i].row < height && vecSeed[i].col < width);
 			int iIndex = (height - 1 - vecSeed[i].row) * width + vecSeed[i].col;
-			if (segment[iIndex] == NULL || segment[iIndex]->m_bBoundary)
+			if (segment[iIndex] == NULL || !segment[iIndex]->m_bValid)
 				continue;
 			int iIndex1 = FindMatch(iIndex);
 			if (iIndex1 != -1)
@@ -338,24 +343,30 @@ void ImgData<T>::ProcessBoundary()
 template <class T>
 void ImgData<T>::ProcessviaMultiThread()
 {
-	// use multithreads
-	int iThreadCount = 4;
+	// use multithreads to find, main thread to merge
+	int iThreadCount = THREAD_COUNT;
 	//int iThreadCount = ROW_BLOCK * COL_BLOCK;
 
-	HANDLE * pHandle = new HANDLE[iThreadCount];
-	threadParam* pThreadParam = new threadParam[iThreadCount];
+	HANDLE * pHandle = new HANDLE[iThreadCount + 1];
+	threadParam* pThreadParam = new threadParam[iThreadCount + 1];
 
 	int iCount = 0;
+	int iWidth = width / COL_BLOCK;
+	int iHeight = height / ROW_BLOCK;
 	for (int i = 0; i < ROW_BLOCK; i++)
 	{
 		for (int j = 0; j < COL_BLOCK; j++)
 		{
 			Blockpair bp;
-			bp.i = i;
-			bp.j = j;
+			bp.row_start = i * iHeight;
+			bp.row_end =  (i + 1) * iHeight >= height ? height : (i + 1) * iHeight;
+			bp.col_start = j * iWidth;
+			bp.col_end = (j + 1) * iWidth >= width ? width : (j + 1) * iWidth; 
 			queBlock.push(bp);
+			//TRACE(_T("block(%d, %d) -- [(%d, %d), (%d, %d)]\n"), i, j, bp.row_start, bp.row_end, bp.col_start, bp.col_end);
 		}
 	}
+	g_time = ::GetTickCount();
 	//for (int i = 0; i < ROW_BLOCK; i++)
 	for (int i = 0; i < iThreadCount; i++)
 	{
@@ -370,15 +381,19 @@ void ImgData<T>::ProcessviaMultiThread()
 			pThreadParam[iCount].col_start = -1;
 			pThreadParam[iCount].col_end = -1;
 
-			pHandle[iCount] = CreateThread(NULL, 0, ThreadProcAll, &pThreadParam[iCount], 0, &dwThreadID);
-			
+			pHandle[iCount] = CreateThread(NULL, 0, ThreadProc_ProcessFind, &pThreadParam[iCount], 0, &dwThreadID);
 			//::WaitForMultipleObjects(1, &pHandle[iCount], TRUE, INFINITE);
+			mapFindEvent.insert(std::make_pair(dwThreadID, pFindEventArray[iCount]));
 			iCount++;
 		//}
 
 	}
 
-	::WaitForMultipleObjects(iThreadCount, pHandle, TRUE, INFINITE);
+	DWORD dwMergeID = 0;
+	// merge thread
+	pThreadParam[iCount].pParam = (InterfaceData*)this;
+	pHandle[iCount] = CreateThread(NULL, 0, ThreadProc_ProcessMerge, &pThreadParam[iCount], 0, &dwMergeID);
+	::WaitForMultipleObjects(iThreadCount + 1, pHandle, TRUE, INFINITE);
 
 	for (int i= 0; i < iThreadCount; i++)
 		::CloseHandle(pHandle[i]);
@@ -394,10 +409,11 @@ void ImgData<T>::ProcessAllSegment()
 	while (true)
 	{
 		int i1 = ::GetTickCount();
+		std::vector<MergePair> vecTest;
 		bool bMatch = false;
 		for (int i = 0; i < width * height; i++)
 		{
-			if (segment[i] == NULL || segment[i]->m_bBoundary)
+			if (segment[i] == NULL || !segment[i]->m_bValid)
 				continue;
 
 			int iIndex1 = FindMatch(segment[i]->m_iIndex);
@@ -410,20 +426,56 @@ void ImgData<T>::ProcessAllSegment()
 					if (segment[i]->m_iIndex == iIndex2)
 					{
 						// merge
-						MergeSegment(segment[i]->m_iIndex, iIndex1);
+						//MergeSegment(segment[i]->m_iIndex, iIndex1);
+						MergePair mp;
+						mp.m = segment[i]->m_iIndex;
+						mp.n = iIndex1;
+						vecTest.push_back(mp);
 						bMatch = true;
 					}
 				}
 			}
 		}
 
+		int i2 = ::GetTickCount();
+		CString str;
+		str.Format(_T("%d loop , find cost time %d, %d need to merge\n"), iTime, i2 - i1, vecTest.size());
+		//str.Format(_T("%d loop, cost time %d.\n"), iTime, i2 - i1);
+		::OutputDebugString(str);
+
 		if (!bMatch)
 			break;
 
-		int i2 = ::GetTickCount();
-		CString str;
-		str.Format(_T("%d loop , cost time %d\n"), ++iTime, i2 - i1);
-		::OutputDebugString(str);
+		//int iCost = 0;
+		////TRACE(_T("Merge Cout : %d\n"), vecTest.size());
+		for (int k = 0; k < (int)vecTest.size(); k++)
+		{
+			//int is = ::GetTickCount();
+			MergeSegment(vecTest[k].m, vecTest[k].n);
+			//int ie = ::GetTickCount();
+			//iCost += (ie - is);
+		}
+
+		int countFalse = 0;
+		for (int i = 0; i < height; i++)
+		{
+			for (int j = 0; j < width; j++)
+			{
+				if (segment[i * width + j]->m_bValid == false)
+					countFalse++;
+			}
+		}
+		///
+		CString ss;
+		ss.Format(_T("Merge %d. %d false\n"), vecTest.size(), countFalse);
+		::OutputDebugString(ss);
+		
+		//int i3 = ::GetTickCount();
+		////CString str;
+		//str.Format(_T("%d loop , merge(%d) cost time %d, avg time : %.3f, total time: %d \n"), iTime, vecTest.size(), i3 - i2, (double)iCost / (double)vecTest.size(), i3 - i1);
+		//::OutputDebugString(str);
+		++iTime;
+		vecTest.clear();
 	}
 }
 
@@ -494,6 +546,17 @@ void ImgData<T>::Initialize()
 			}
 		}
 	}
+#ifdef MULTI_THREAD
+	pFindEventArray = new HANDLE[THREAD_COUNT];
+	for (int i = 0; i < THREAD_COUNT; i++)
+	{
+		pFindEventArray[i] = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+	}
+
+	mergeHandle = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+	bQuitFind = false;
+	bForceMerge = false;
+#endif
 }
 
 template <class T>
@@ -534,6 +597,25 @@ float ImgData<T>::CalcEuclideanDistance(int iIndex1, int iIndex2)
 }
 
 template <class T>
+float ImgData<T>::CalcEuclideanDistance(Segment* pSeg1, Segment* pSeg2)
+{
+	// pSeg1 && pSeg2 must be valid before enter
+	ASSERT(pSeg1->m_Avg.size() == pSeg2->m_Avg.size());
+
+	float f = 0.0f;
+	for (int i = 0; i < (int)pSeg1->m_Avg.size(); i++)
+	{
+		f += (pSeg1->m_Avg[i] - pSeg2->m_Avg[i]) * (pSeg1->m_Avg[i] - pSeg2->m_Avg[i]);
+	}
+
+	float ed = 1e8;
+	if (f > 0.0001)
+		ed = sqrt(f);
+
+	return ed;
+}
+
+template <class T>
 float ImgData<T>::CalcNewCriteria(int iIndex1, int iIndex2)
 {
 	if (iIndex1 == -1 || iIndex2 == -1)
@@ -542,6 +624,25 @@ float ImgData<T>::CalcNewCriteria(int iIndex1, int iIndex2)
 	Segment* pSeg1 = segment[iIndex1];
 	Segment* pSeg2 = segment[iIndex2];
 
+	ASSERT(pSeg1->m_Avg.size() == pSeg2->m_Avg.size());
+	// to be continued...
+	int n1 = pSeg1->m_area.size();
+	int n2 = pSeg2->m_area.size();
+
+	float f = 0.0f;
+	for (int i = 0; i < (int)pSeg1->m_Avg.size(); i++)
+	{
+		float u = (n1 * pSeg1->m_Avg[i] + n2 * pSeg2->m_Avg[i]) / (float)(n1 + n2);
+		//f += (pSeg1->m_Avg[i] - pSeg2->m_Avg[i]) * (pSeg1->m_Avg[i] - pSeg2->m_Avg[i]);
+		f += (pSeg1->m_Avg[i] * pSeg1->m_Avg[i] * n1 + pSeg2->m_Avg[i] * pSeg2->m_Avg[i] * n2 - (n1 + n2) * u * u);
+	}
+	float ed = sqrt(f / (float)pSeg1->m_Avg.size());
+	return ed;
+}
+
+template <class T>
+float ImgData<T>::CalcNewCriteria(Segment* pSeg1, Segment* pSeg2)
+{
 	ASSERT(pSeg1->m_Avg.size() == pSeg2->m_Avg.size());
 	// to be continued...
 	int n1 = pSeg1->m_area.size();
@@ -569,25 +670,41 @@ int ImgData<T>::FindMatch(int iIndex, int except = -1)
 
 		for (int j = 0; j < (int)pSeg->m_neighbours.size(); j++)
 		{
-			if (pSeg->m_neighbours[j] == -1)
-				continue;
+			int iIndexNeighbour = pSeg->m_neighbours[j];
 
-			Segment* p = segment[pSeg->m_neighbours[j]];
-			if (p == NULL || p->m_bBoundary)
+			Segment* p = segment[iIndexNeighbour];
+			if (p == NULL || !p->m_bValid)
 			{
 				continue;
 			}
 			// to change CalcEuclideanDistance to whatever you want
-			float fValue = CalcEuclideanDistance(iIndex, p->m_iIndex);
+			//float fValue = CalcEuclideanDistance(iIndex, p->m_iIndex);
+			float fValue = CalcEuclideanDistance(pSeg, p);
 
-			//float fValue = CalcNewCriteria(iIndex, p->m_iIndex);
+			//float fValue = CalcNewCriteria(pSeg, p);
 			// find min
-			if (fValue < fEd_min && fValue < condition.threshold)
+#ifdef MULTI_THREAD
+			if (bForceMerge)
 			{
-				fEd_min = fValue;
-				iFind = p->m_iIndex;
+				if (fValue < fEd_min)
+				{
+					fEd_min = fValue;
+					iFind = p->m_iIndex;
+				}
 			}
+			else
+			{
+#endif
+				if (fValue < fEd_min && fValue < condition.threshold)
+				{
+					fEd_min = fValue;
+					iFind = p->m_iIndex;
+				}
+#ifdef MULTI_THREAD
+			}
+#endif
 		}
+
 		if (iFind >= 0)
 		{
 			return iFind;
@@ -608,7 +725,7 @@ void ImgData<T>::MergeSegment(int iIndex1, int iIndex2)
 	Segment* pSeg2 = segment[iIndex2];
 
 
-	if (pSeg1 == NULL || pSeg2 ==NULL || pSeg1->m_bBoundary || pSeg2->m_bBoundary)
+	if (pSeg1 == NULL || pSeg2 ==NULL || !pSeg1->m_bValid || !pSeg2->m_bValid)
 		return;
 
 	int n1 = pSeg1->m_area.size();
@@ -678,7 +795,7 @@ void ImgData<T>::MergeSegment(int iIndex1, int iIndex2)
 			continue;
 
 		Segment* pSeg = segment[iIndex];
-		if (pSeg == NULL || pSeg->m_bBoundary)
+		if (pSeg == NULL || !pSeg->m_bValid)
 			continue;
 		// if n is seg1's neighbour
 		std::vector<int>::iterator iter1 = std::find(pSeg1->m_neighbours.begin(), pSeg1->m_neighbours.end(), iIndex);
@@ -691,11 +808,11 @@ void ImgData<T>::MergeSegment(int iIndex1, int iIndex2)
 		iter1 = std::find(pSeg->m_neighbours.begin(), pSeg->m_neighbours.end(), iIndex1);
 		std::vector<int>::iterator iter2 = std::find(pSeg->m_neighbours.begin(), pSeg->m_neighbours.end(), iIndex2);
 
-		ASSERT(iter2 != pSeg->m_neighbours.end());
-		if (iter2 == pSeg->m_neighbours.end())
-		{
-			::OutputDebugString(_T("wtf\n"));
-		}
+		//ASSERT(iter2 != pSeg->m_neighbours.end());
+		//if (iter2 == pSeg->m_neighbours.end())
+		//{
+		//	::OutputDebugString(_T("wtf\n"));
+		//}
 
 		if (iter1 != pSeg->m_neighbours.end())
 			pSeg->m_neighbours.erase(iter2);
@@ -703,6 +820,7 @@ void ImgData<T>::MergeSegment(int iIndex1, int iIndex2)
 		{
 			*iter2 = iIndex1;
 		}
+		
 	}
 
 	pSeg1->min_row = pSeg1->min_row < pSeg2->min_row ? pSeg1->min_row : pSeg2->min_row;
@@ -711,9 +829,19 @@ void ImgData<T>::MergeSegment(int iIndex1, int iIndex2)
 	pSeg1->max_row = pSeg1->max_row > pSeg2->max_row ? pSeg1->max_row : pSeg2->max_row;
 	pSeg1->max_col = pSeg1->max_col > pSeg2->max_col ? pSeg1->max_col : pSeg2->max_col;
 	//TRACE(_T("merge %d to %d\n"), pSeg2->m_iIndex, pSeg1->m_iIndex);
-	segment[iIndex2] = NULL;
-	delete pSeg2;
-	pSeg2 = NULL;
+	//TRACE(_T("%d\n"), iIndex2);
+	//segment[iIndex2] = NULL;
+	segment[iIndex2]->m_bValid = false;
+	segment[iIndex2]->m_area.clear();
+	std::vector<Pixel>().swap(segment[iIndex2]->m_area);
+	//segment[iIndex2]->m_Avg.clear();
+	segment[iIndex2]->m_neighbours.clear();
+	std::vector<int>().swap(segment[iIndex2]->m_neighbours);
+	//delete pSeg2;
+	//pSeg2 = NULL;
+	//pSeg2->m_bValid = false;
+	g_count++;
+	//g_map_merge.insert(iIndex2);
 }
 
 template <class T>
@@ -725,6 +853,15 @@ ImgData<T>::~ImgData()
 template <class T>
 void ImgData<T>::UnInitialize()
 {
+#ifdef MULTI_THREAD
+	for (int i = 0; i < THREAD_COUNT; i++)
+	{
+		//pFindEventArray[i] = ::CreateEvent(NULL, TRUE, FALSE, NULL):
+		::CloseHandle(pFindEventArray[i]);
+	}
+	delete[] pFindEventArray;
+	::CloseHandle(mergeHandle);
+#endif
 	for (int i = 0; i < width * height; i++)
 	{
 		if (segment[i] != NULL)
@@ -843,7 +980,7 @@ void ImgData<T>::Output(CString& strFile)
 	int iIndex = 0;
 	for (int i = 0; i < width * height; i++)
 	{
-		if (segment[i] != NULL && segment[i]->m_iIndex != -1)
+		if (segment[i] != NULL && segment[i]->m_bValid)
 		{
 			iIndex++;
 			iSum += segment[i]->m_area.size();
@@ -933,108 +1070,114 @@ float ImgData<T>::CalcShapefactor(Segment* pSeg1, Segment* pSeg2)
 	return sf;
 }
 #ifdef MULTI_THREAD
+//template <class T>
+//void ImgData<T>::ThreadProcessAll(int& row_start, int& row_end, int& col_start, int& col_end)
+//{
+//	//GetFromQue(row_start, row_end, col_start, col_end);
+//
+//	//SYSTEM_INFO systeminfo;
+//	//::GetSystemInfo(&systeminfo);
+//	//CString strInfo;
+//	//strInfo.Format(_T("CPU total count %d. Thread %d is using num %d(%x)\n"), systeminfo.dwNumberOfProcessors, ::GetCurrentThreadId(), systeminfo.dwActiveProcessorMask, systeminfo.dwActiveProcessorMask);
+//	//::OutputDebugString(strInfo);
+//
+//	//int iCpu = 1;
+//	//for (int i = 0; i < row_start; i++)
+//	//{
+//	//	iCpu = iCpu << 1;
+//	//}
+//	//DWORD dMask = ::SetThreadAffinityMask(::GetCurrentThread(), iCpu);
+//
+//	//::GetSystemInfo(&systeminfo);
+//	//strInfo.Format(_T("After SetThreadAffinityMask. CPU total count %d. Thread %d is using num %d(%x), preMask is %d(%x)\n"), systeminfo.dwNumberOfProcessors, ::GetCurrentThreadId(), systeminfo.dwActiveProcessorMask, systeminfo.dwActiveProcessorMask, dMask, dMask);
+//	//::OutputDebugString(strInfo);
+//	while (true)
+//	{
+//		queLock.Lock();
+//		if (queBlock.empty())
+//		{
+//			queLock.Unlock();
+//			break;
+//		}
+//		Blockpair bp = queBlock.front();
+//		queBlock.pop();
+//		queLock.Unlock();
+//		int i = bp.i;
+//		int j = bp.j;
+//
+//		row_start = i == 0 ? i * rInterval: i * rInterval + 1;
+//		row_end = (i == ROW_BLOCK - 1) ? height: (i + 1) * rInterval;
+//
+//		col_start = j == 0 ? j * cInterval: j * cInterval + 1;
+//		col_end = (j == COL_BLOCK - 1) ? width: (j + 1) * cInterval;
+//
+//		CString str;
+//		str.Format(_T("Process of [(%d, %d), (%d, %d)] begins~!!\n"), row_start, row_end, col_start, col_end);
+//		::OutputDebugString(str);
+//
+//		int i1 = ::GetTickCount();
+//		Segment** pSegBlock = RetriveBlock(row_start, row_end, col_start, col_end);
+//
+//		// calc with segBlock
+//		ProcessBlock(pSegBlock, row_start, row_end, col_start, col_end);
+//
+//		RestoreBlock(pSegBlock, row_start, row_end, col_start, col_end);
+//
+//		DestroyBlock(pSegBlock, row_start, row_end, col_start, col_end);
+//		int i2 = ::GetTickCount();
+//
+//		str.Format(_T("Process of [(%d, %d), (%d, %d)] cost time %d(ms)\n"), row_start, row_end, col_start, col_end, i2 - i1);
+//		::OutputDebugString(str);
+//	}
+//	//// [start, end)
+//	//int iRound = 0;
+//	//while (true)
+//	//{
+//	//	int i1 = ::GetTickCount();
+//	//	bool bMatch = false;
+//	//	for (int i = row_start; i < row_end; i++)
+//	//	{
+//	//		for (int j = col_start; j < col_end; j++)
+//	//		{
+//	//			int iIndex = i * width + j;
+//	//			if (segment[iIndex] == NULL || segment[iIndex]->m_bBoundary)
+//	//			{
+//	//				continue;
+//	//			}
+//
+//	//			int iIndex1 = FindMatch(iIndex);
+//
+//	//			if (iIndex1 != -1)
+//	//			{
+//	//				int iIndex2 = FindMatch(iIndex1, iIndex);
+//	//				if (iIndex2 != -1 && iIndex == iIndex2)
+//	//				{
+//	//					MergeSegment(iIndex, iIndex1);
+//	//					bMatch = true;
+//	//				}
+//	//			}
+//	//		}
+//	//	}
+//
+//	//	if (!bMatch)
+//	//	{
+//	//		CString str;
+//	//		str.Format(_T("Round: %d of [(%d, %d), (%d, %d)] exit!!!!\n"), ++iRound, row_start, row_end, col_start, col_end);
+//	//		::OutputDebugString(str);
+//	//		break;
+//	//	}
+//
+//	//	int i2 = ::GetTickCount();
+//	//	CString str;
+//	//	str.Format(_T("Round: %d of [(%d, %d), (%d, %d)] cost time %d(ms)\n"), ++iRound, row_start, row_end, col_start, col_end, i2 - i1);
+//	//	::OutputDebugString(str);
+//	//}
+//}
+
 template <class T>
 void ImgData<T>::ThreadProcessAll(int& row_start, int& row_end, int& col_start, int& col_end)
 {
-	//GetFromQue(row_start, row_end, col_start, col_end);
 
-	//SYSTEM_INFO systeminfo;
-	//::GetSystemInfo(&systeminfo);
-	//CString strInfo;
-	//strInfo.Format(_T("CPU total count %d. Thread %d is using num %d(%x)\n"), systeminfo.dwNumberOfProcessors, ::GetCurrentThreadId(), systeminfo.dwActiveProcessorMask, systeminfo.dwActiveProcessorMask);
-	//::OutputDebugString(strInfo);
-
-	//int iCpu = 1;
-	//for (int i = 0; i < row_start; i++)
-	//{
-	//	iCpu = iCpu << 1;
-	//}
-	//DWORD dMask = ::SetThreadAffinityMask(::GetCurrentThread(), iCpu);
-
-	//::GetSystemInfo(&systeminfo);
-	//strInfo.Format(_T("After SetThreadAffinityMask. CPU total count %d. Thread %d is using num %d(%x), preMask is %d(%x)\n"), systeminfo.dwNumberOfProcessors, ::GetCurrentThreadId(), systeminfo.dwActiveProcessorMask, systeminfo.dwActiveProcessorMask, dMask, dMask);
-	//::OutputDebugString(strInfo);
-	while (true)
-	{
-		queLock.Lock();
-		if (queBlock.empty())
-		{
-			queLock.Unlock();
-			break;
-		}
-		Blockpair bp = queBlock.front();
-		queBlock.pop();
-		queLock.Unlock();
-		int i = bp.i;
-		int j = bp.j;
-
-		row_start = i == 0 ? i * rInterval: i * rInterval + 1;
-		row_end = (i == ROW_BLOCK - 1) ? height: (i + 1) * rInterval;
-
-		col_start = j == 0 ? j * cInterval: j * cInterval + 1;
-		col_end = (j == COL_BLOCK - 1) ? width: (j + 1) * cInterval;
-
-		CString str;
-		str.Format(_T("Process of [(%d, %d), (%d, %d)] begins~!!\n"), row_start, row_end, col_start, col_end);
-		::OutputDebugString(str);
-
-		int i1 = ::GetTickCount();
-		Segment** pSegBlock = RetriveBlock(row_start, row_end, col_start, col_end);
-
-		// calc with segBlock
-		ProcessBlock(pSegBlock, row_start, row_end, col_start, col_end);
-
-		RestoreBlock(pSegBlock, row_start, row_end, col_start, col_end);
-
-		DestroyBlock(pSegBlock, row_start, row_end, col_start, col_end);
-		int i2 = ::GetTickCount();
-
-		str.Format(_T("Process of [(%d, %d), (%d, %d)] cost time %d(ms)\n"), row_start, row_end, col_start, col_end, i2 - i1);
-		::OutputDebugString(str);
-	}
-	//// [start, end)
-	//int iRound = 0;
-	//while (true)
-	//{
-	//	int i1 = ::GetTickCount();
-	//	bool bMatch = false;
-	//	for (int i = row_start; i < row_end; i++)
-	//	{
-	//		for (int j = col_start; j < col_end; j++)
-	//		{
-	//			int iIndex = i * width + j;
-	//			if (segment[iIndex] == NULL || segment[iIndex]->m_bBoundary)
-	//			{
-	//				continue;
-	//			}
-
-	//			int iIndex1 = FindMatch(iIndex);
-
-	//			if (iIndex1 != -1)
-	//			{
-	//				int iIndex2 = FindMatch(iIndex1, iIndex);
-	//				if (iIndex2 != -1 && iIndex == iIndex2)
-	//				{
-	//					MergeSegment(iIndex, iIndex1);
-	//					bMatch = true;
-	//				}
-	//			}
-	//		}
-	//	}
-
-	//	if (!bMatch)
-	//	{
-	//		CString str;
-	//		str.Format(_T("Round: %d of [(%d, %d), (%d, %d)] exit!!!!\n"), ++iRound, row_start, row_end, col_start, col_end);
-	//		::OutputDebugString(str);
-	//		break;
-	//	}
-
-	//	int i2 = ::GetTickCount();
-	//	CString str;
-	//	str.Format(_T("Round: %d of [(%d, %d), (%d, %d)] cost time %d(ms)\n"), ++iRound, row_start, row_end, col_start, col_end, i2 - i1);
-	//	::OutputDebugString(str);
-	//}
 }
 
 template <class T>
@@ -1673,8 +1816,8 @@ void ImgData<T>::MergeSegment(Segment** pSegBlock, int& iIndex1, int& iIndex2, i
 	pSeg1->max_col = pSeg1->max_col > pSeg2->max_col ? pSeg1->max_col : pSeg2->max_col;
 	//TRACE(_T("merge %d to %d\n"), pSeg2->m_iIndex, pSeg1->m_iIndex);
 	pSegBlock[iIndex2] = NULL;
-	delete pSeg2;
-	pSeg2 = NULL;
+	//delete pSeg2;
+	//pSeg2 = NULL;
 }
 
 template <class T>
@@ -1875,5 +2018,168 @@ float ImgData<T>::CalcNewCriteria(Segment** pSegBlock, int iIndex1, int iIndex2)
 	}
 	float ed = sqrt(f / (float)pSeg1->m_Avg.size());
 	return ed;
+}
+template <class T>
+void ImgData<T>::ThreadFind()
+{
+	while (!bQuitFind)
+	{
+		queLock.Lock();
+		if (queBlock.empty())
+		{
+			queLock.Unlock();
+			std::map<DWORD, HANDLE>::iterator iter = mapFindEvent.find(::GetCurrentThreadId());
+			ASSERT(iter != mapFindEvent.end());
+			//break;
+			//CString ss;
+			//ss.Format(_T("Thread : %d now wait for mergehandle.\n"), ::GetCurrentThreadId());
+			//::OutputDebugString(ss);
+			::SetEvent(iter->second);
+			::WaitForSingleObject(mergeHandle, INFINITE);
+			//ss.Format(_T("Thread : %d now continues to work.\n"), ::GetCurrentThreadId());
+			//::OutputDebugString(ss);
+			continue;
+		}
+		Blockpair bp = queBlock.front();
+		queBlock.pop();
+		queLock.Unlock();
+
+		int iWidth = bp.col_end - bp.col_start;
+		int iHeight = bp.row_end - bp.row_start;
+		// find this block
+		//TRACE(_T("Process:[(%d, %d), (%d, %d)]\n"), bp.row_start, bp.row_end, bp.col_start, bp.col_end);
+		for (int i = bp.row_start; i < bp.row_end; i++)
+		{
+			for (int j = bp.col_start; j < bp.col_end; j++)
+			{
+				int iIndex = i * width + j;
+				if (segment[iIndex] == NULL || !segment[iIndex]->m_bValid)
+					continue;
+				if (!bForceMerge)
+				{
+					int iIndex1 = FindMatch(iIndex);
+					if (iIndex1 != -1)
+					{
+						// may cause dead lock here
+						int iIndex2 = FindMatch(iIndex1, iIndex);
+
+						if (iIndex2 != -1 && iIndex == iIndex2)
+						{
+							//MergeSegment(iIndex, iIndex1);
+							vecMergeLock.Lock();
+							MergePair mp;
+							mp.m = iIndex;
+							mp.n = iIndex1;
+							//queMerge
+							vecMerge.push_back(mp);
+							vecMergeLock.Unlock();
+						}
+					}
+				}
+				else
+				{
+					if (segment[iIndex]->m_area.size() < 50)
+					{
+						int iIndex1 = FindMatch(iIndex);
+						if (iIndex1 != -1)
+						{
+							vecMergeLock.Lock();
+							MergePair mp;
+							mp.m = iIndex;
+							mp.n = iIndex1;
+							//queMerge
+							vecMerge.push_back(mp);
+							vecMergeLock.Unlock();
+						}
+					}
+				}
+			}
+		}
+
+		// set event
+		// wait for mergeevent
+	}
+}
+template <class T>
+void ImgData<T>::ThreadMerge()
+{
+	int iTemp = 0;
+	while (true)
+	{
+		::WaitForMultipleObjects(THREAD_COUNT, pFindEventArray, TRUE, INFINITE);
+		//vecMergeLock.Lock();
+		::ResetEvent(mergeHandle);
+		if (!bForceMerge)
+		{
+			if (vecMerge.empty())
+			{
+				bQuitFind = true;
+				::SetEvent(mergeHandle);
+				break;
+			}
+			iTemp = g_time;
+			g_time = ::GetTickCount();
+			TRACE(_T("find cost time %d(ms).\n"), g_time - iTemp);
+
+			if (!bForceMerge && (int)vecMerge.size() < (int)(width * height / 5000))
+				bForceMerge = true;
+		}
+		else
+		{
+			if (vecMerge.empty())
+				bForceMerge = false;
+		}
+		// 
+		for (int i = 0; i < (int)vecMerge.size(); i++)
+		{
+			MergeSegment(vecMerge[i].m, vecMerge[i].n);
+		}
+
+
+		int iWidth = width / COL_BLOCK;
+		int iHeight = height / ROW_BLOCK;
+		queLock.Lock();
+		for (int i = 0; i < ROW_BLOCK; i++)
+		{
+			for (int j = 0; j < COL_BLOCK; j++)
+			{
+				Blockpair bp;
+				bp.row_start = i * iHeight;
+				bp.row_end =  (i + 1) * iHeight >= height ? height : (i + 1) * iHeight;
+				bp.col_start = j * iWidth;
+				bp.col_end = (j + 1) * iWidth >= width ? width : (j + 1) * iWidth; 
+				queBlock.push(bp);
+				//TRACE(_T("block(%d, %d) -- [(%d, %d), (%d, %d)]"), i, j, bp.row_start, bp.row_end, bp.col_start, bp.col_end);
+			}
+		}
+		queLock.Unlock();
+
+		///
+		//int countFalse = 0;
+		//for (int i = 0; i < height; i++)
+		//{
+		//	for (int j = 0; j < width; j++)
+		//	{
+		//		if (segment[i * width + j]->m_bValid == false)
+		//			countFalse++;
+		//	}
+		//}
+		///
+		CString ss;
+		ss.Format(_T("Merge %d. %d false\n"), vecMerge.size(), g_count);
+		::OutputDebugString(ss);
+		
+		vecMerge.clear();
+		std::vector<MergePair>().swap(vecMerge);
+		iTemp = g_time;
+		g_time = ::GetTickCount();
+		ss.Format(_T("merge cost : %d(ms).\n"), g_time - iTemp);
+		::OutputDebugString(ss);
+		for (int i = 0; i < THREAD_COUNT; i++)
+		{
+			::ResetEvent(pFindEventArray[i]);
+		}
+		::SetEvent(mergeHandle);
+	}
 }
 #endif

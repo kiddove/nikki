@@ -100,7 +100,10 @@ BOOL CSegmetationDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
-
+	//std::vector<int> vecTemp;
+	//vecTemp.assign(1250*1250, 1);
+	//vecTemp.clear();
+	//std::vector<int>().swap(vecTemp);
 	GetDlgItem(IDC_BUTTON_PROCESS)->EnableWindow(FALSE);
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }

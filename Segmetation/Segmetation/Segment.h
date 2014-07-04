@@ -31,13 +31,13 @@ public:
 		row = 0;
 		col = 0;
 	}
-	Pixel(int r, int c)
+	Pixel(short r, short c)
 	{
 		row = r;
 		col = c;
 	}
-	int row;
-	int col;
+	short row;
+	short col;
 
 	bool operator==(const Pixel& obj) const
 	{
@@ -73,7 +73,7 @@ public:
 			m_area.clear();
 			Add(r, c);
 		}
-		m_bBoundary = false;
+		m_bValid = true;
 	}
 
 	void Add(int r, int c)
@@ -118,5 +118,6 @@ public:
 	int min_col;
 	int max_col;
 
-	bool m_bBoundary;
+	//bool m_bBoundary;
+	bool m_bValid;
 };

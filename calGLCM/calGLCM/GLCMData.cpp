@@ -1,11 +1,14 @@
 #include "StdAfx.h"
 #include "GLCMData.h"
 
-GLCMData::GLCMData(void)
+#define INVALID_VALUE 0
+
+GLCMData::GLCMData(CStdioFile* pOutput)
 {
 	m_pData = NULL;
 	m_strFilePath.Empty();
 	memset(&m_imgInfo, 0, sizeof(ImgInfo));
+	m_pOutput = pOutput;
 }
 
 GLCMData::~GLCMData(void)
@@ -17,7 +20,7 @@ GLCMData::~GLCMData(void)
 	}
 }
 
-bool GLCMData::LoadFromFile(LPTSTR strFilePath)
+bool GLCMData::LoadFromFile(LPCTSTR strFilePath)
 {
 	GDALDataset *poDataset;
 	GDALAllRegister();
@@ -92,6 +95,9 @@ bool GLCMData::LoadFromFile(LPTSTR strFilePath)
 	case GDT_UInt16:
 	case GDT_Int16:
 		iSize = 2;
+		break;
+	case GDT_Float32:
+		iSize = 4;
 		break;
 	default:
 		break;
@@ -235,11 +241,18 @@ void GLCMData::calGLCM16()
 	unsigned short* pTemp = (unsigned short*)m_pData;
 	// step 1
 	// normalize
+	int iInvalid = 0;
 	for (int i = 0; i < m_imgInfo.iHeight; i++)
 	{
 		for (int j = 0; j < m_imgInfo.iWidth; j++)
 		{
-			pTemp[i * m_imgInfo.iWidth + j] = pTemp[i * m_imgInfo.iWidth + j] * m_calCon.graynum / 65536 + 1;
+			if (pTemp[i * m_imgInfo.iWidth + j] != INVALID_VALUE)
+				pTemp[i * m_imgInfo.iWidth + j] = pTemp[i * m_imgInfo.iWidth + j] * m_calCon.graynum / 65536 + 1;
+			else
+			{
+				pTemp[i * m_imgInfo.iWidth + j] = -1;
+				iInvalid++;
+			}
 		}
 	}
 
@@ -263,9 +276,9 @@ void GLCMData::calGLCM16()
 
 	///
 	TRACE(_T("\n10 * 10:\n"));
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < m_imgInfo.iHeight; i++)
 	{		
-		for (int j = 0; j < 10; j++)
+		for (int j = 0; j < m_imgInfo.iWidth; j++)
 		{
 			TRACE(_T("%d, "),  pData[i * yroll * m_calCon.y + j]);
 		}
@@ -289,8 +302,11 @@ void GLCMData::calGLCM16()
 						{
 							int x = pData[(i * m_calCon.y + p) * yroll * m_calCon.y + j * m_calCon.x + q];
 							int y = pData[(i * m_calCon.y + p) * yroll * m_calCon.y + j * m_calCon.x + q + m_calCon.distance];
-							pGLCM[(x - 1) * m_calCon.graynum + y - 1] += 1;
-							TRACE(_T("[%d, %d] --- %d, %d\n"), p, q, x, y);
+							if (x != (unsigned short)-1 && y != (unsigned short)-1)
+							{
+								pGLCM[(x - 1) * m_calCon.graynum + y - 1] += 1;
+								TRACE(_T("[%d, %d] --- %d, %d\n"), p, q, x, y);
+							}
 						}
 					}
 				}
@@ -386,6 +402,17 @@ void GLCMData::calGLCM16()
 				//corelation = corelation_t / (varianceH * varianceV);
 				TRACE(_T("[%d, %d] sum: %d, 熵entropy(): %.3f, 能量(asm): %.3f, 对比度(contrast): %.3f, 一致性(homogenity): %.3f, meanH: %.3f, meanV: %.3f, varianceH: %.3f, varianceV: %.3f, corelation: %.3f, dissimilarity: %.3f\n")
 					, i, j, sum, entropy, energy, contrast, homogenity, meanH, meanV, varianceH, varianceV, corelation, dissimilarity);
+
+				if (m_pOutput != NULL)
+				{
+					CString str;
+					int iPos = m_strFilePath.ReverseFind(_T('\\'));
+					str = m_strFilePath.Right(m_strFilePath.GetLength() - iPos - 1);
+					CString strInfo;
+					strInfo.Format(_T("%s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n"), str
+						, entropy, energy, contrast, homogenity, meanH, meanV, varianceH, varianceV, corelation, dissimilarity);
+					m_pOutput->WriteString(strInfo);
+				}
 			}
 		}
 	}
