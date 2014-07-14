@@ -1,0 +1,115 @@
+[33mcommit 3edbadab5a2ac70ea4608936ea50422e1084cbaf[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Mon Jul 14 16:58:04 2014 -0400
+
+    GUI work
+
+[33mcommit 2d3c0b5319e40867a9739a4318e6f9fdf6cfa630[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Fri Jul 4 13:53:02 2014 -0400
+
+    vector swap to free memory not clear
+
+[33mcommit 724973c7f6529f1e6bca6ddd4870f6fa42a1e42d[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Wed Jun 25 12:58:10 2014 -0400
+
+    MULTI
+
+[33mcommit 5901eea1243a80be91e6de7139390029a5175c6b[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Thu Jun 19 10:54:17 2014 -0400
+
+    Segmentation trying to use multithread
+
+[33mcommit 033d1086456233ed1465336bfb72fa9acea930cc[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Mon Jun 9 23:31:11 2014 -0400
+
+    Segment & NDVI
+
+[33mcommit 236df2e6dea839f1e68a06c08bc5f5e56cb9e4ac[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Tue Jun 3 22:52:51 2014 -0400
+
+    NDVI
+
+[33mcommit b204e55cf1eed412bc4e1bb95da041f4b6d7f2e5[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Tue Jun 3 21:34:29 2014 -0400
+
+    new segmentation
+
+[33mcommit ede11a18cd2f78d33eb45b375d98484b27ff3fa3[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Mon Jun 2 16:15:01 2014 -0400
+
+    once for all
+
+[33mcommit d74fd4aec1ad8c27c8943f894e54f4f390696746[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Sat Mar 1 12:41:37 2014 -0500
+
+    add configure
+
+[33mcommit 0d38bb445b6bac931d0811a381a97a6643199f84[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Thu Jan 23 00:14:04 2014 -0500
+
+    calculate D6
+    
+    adjust() y from max to min
+
+[33mcommit d5d0684bc9db6e687273b3b27af9f97b5f38dd70[m
+Author: kiddove <kiddove@gmail.com>
+Date:   Mon Jan 20 10:20:18 2014 -0500
+
+    las and dem
+    
+    v1
+
+[33mcommit f97491576e300a6c0e31e8c63b50d5ebe5362e90[m
+Author: zhoupeng <kiddove@gmail.com>
+Date:   Wed Nov 13 15:36:10 2013 +0800
+
+    1111
+    
+    11
+
+[33mcommit d4ade7b081d31ee7b90162b33948ebcedb991fea[m
+Author: zhoupeng <kiddove@gmail.com>
+Date:   Thu Oct 31 10:37:47 2013 +0800
+
+    del
+
+[33mcommit 5fbf523849d5f5feb324bb35f8ac63f3d4ff9806[m
+Author: zhoupeng <kiddove@gmail.com>
+Date:   Thu Oct 31 10:37:34 2013 +0800
+
+    lalala
+
+[33mcommit 83a99c098d0f927c865c0680b3646dd5924ba1c7[m
+Author: zhoupeng <kiddove@gmail.com>
+Date:   Wed Oct 23 09:29:18 2013 +0800
+
+    all old code
+
+[33mcommit a1e968780b45b78aa9626c02019d69933be561cf[m
+Author: zhoupeng <kiddove@gmail.com>
+Date:   Wed Oct 23 09:24:08 2013 +0800
+
+    read
+
+[33mcommit 22c59406d7b9bad1ef179e3e0d27803b3d200828[m
+Author: zhoupeng <kiddove@gmail.com>
+Date:   Tue Oct 22 11:14:11 2013 +0800
+
+    not for this program
+
+[33mcommit 643673bb58898f46906446db2e03226b4a0c6393[m
+Author: zhoupeng <kiddove@gmail.com>
+Date:   Tue Oct 22 09:55:40 2013 +0800
+
+    new add
+    
+    new add

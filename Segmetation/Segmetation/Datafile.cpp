@@ -32,21 +32,21 @@ int get_core_count()
 	return iCount;
 }
 #ifdef MULTI_THREAD
-DWORD WINAPI ThreadProcAll(LPVOID pParam)
-{
-	try
-	{
-		threadParam* p = (threadParam*)pParam;
-		InterfaceData* pData = p->pParam;
-		pData->ThreadProcessAll(p->row_start, p->row_end, p->col_start, p->col_end);
-		return 0x1001;
-	}
-	catch (std::exception e)
-	{
-		TRACE(_T("%s\n"), e.what());
-		return 0x2001;
-	}
-}
+//DWORD WINAPI ThreadProcAll(LPVOID pParam)
+//{
+//	try
+//	{
+//		threadParam* p = (threadParam*)pParam;
+//		InterfaceData* pData = p->pParam;
+//		pData->ThreadProcessAll(p->row_start, p->row_end, p->col_start, p->col_end);
+//		return 0x1001;
+//	}
+//	catch (std::exception e)
+//	{
+//		TRACE(_T("%s\n"), e.what());
+//		return 0x2001;
+//	}
+//}
 
 DWORD WINAPI ThreadProc_ProcessFind(LPVOID pParam)
 {
@@ -134,7 +134,11 @@ void Datafile::Process(std::vector<Pixel>& vecSeed, segCondition& con)
 	CString strOutput;
 	int ipos = m_strFile.ReverseFind(_T('.'));
 	strOutput = m_strFile.Left(ipos);
+#ifdef USETXT
 	strOutput += _T(".txt");
+#else
+	strOutput += _T("_segmentation.tif");
+#endif
 	switch (iType)
 	{
 	case GDT_UInt16:
@@ -143,7 +147,11 @@ void Datafile::Process(std::vector<Pixel>& vecSeed, segCondition& con)
 			// load data
 			usData.LoadData(m_pDataset);
 			usData.Process(vecSeed, con);
+#ifdef USETXT
 			usData.Output(strOutput);
+#else
+			usData.Output(strOutput, m_pDataset);
+#endif
 			//usData.UnInitialize();
 			//return usData;
 		}
@@ -154,7 +162,11 @@ void Datafile::Process(std::vector<Pixel>& vecSeed, segCondition& con)
 			// load data
 			sData.LoadData(m_pDataset);
 			sData.Process(vecSeed, con);
+#ifdef USETXT
 			sData.Output(strOutput);
+#else
+			sData.Output(strOutput, m_pDataset);
+#endif
 			//return sData;
 		}
 		break;
@@ -164,7 +176,11 @@ void Datafile::Process(std::vector<Pixel>& vecSeed, segCondition& con)
 			// load data
 			fData.LoadData(m_pDataset);
 			fData.Process(vecSeed, con);
+#ifdef USETXT
 			fData.Output(strOutput);
+#else
+			fData.Output(strOutput, m_pDataset);
+#endif
 			//return sData;
 		}
 		break;
@@ -175,7 +191,11 @@ void Datafile::Process(std::vector<Pixel>& vecSeed, segCondition& con)
 			// load data
 			bData.LoadData(m_pDataset);
 			bData.Process(vecSeed, con);
+#ifdef USETXT
 			bData.Output(strOutput);
+#else
+			bData.Output(strOutput, m_pDataset);
+#endif
 			//return bData;
 		}
 		break;
@@ -265,6 +285,10 @@ void ImgData<T>::Process(std::vector<Pixel>& vecSeed, segCondition& con)
 template <class T>
 void ImgData<T>::ProcessviaSeed(std::vector<Pixel>& vecSeed)
 {
+#ifdef ONLYSEED
+	seedPixel.clear();
+	seedPixel = vecSeed;
+#endif
 	while (true)
 	{
 		bool bMatch = false;
@@ -302,43 +326,43 @@ void ImgData<T>::ProcessviaSeed(std::vector<Pixel>& vecSeed)
 	}
 }
 #ifdef MULTI_THREAD
-template <class T>
-void ImgData<T>::ProcessBoundary()
-{
-	int iRound = 0;
-	while (true)
-	{
-		int i1 = ::GetTickCount();
-		bool bMatch = false;
-		for (int i = 0; i < (int)vecBoundary.size(); i++)
-		{
-			ASSERT(vecBoundary[i].row < height && vecBoundary[i].col < width);
-			int iIndex = vecBoundary[i].row * width + vecBoundary[i].col;
-			if (segment[iIndex] == NULL || segment[iIndex]->m_bBoundary)
-				continue;
-			int iIndex1 = FindMatch(iIndex);
-			if (iIndex1 != -1)
-			{
-				int iIndex2 = FindMatch(iIndex1, iIndex);
-
-				if (iIndex2 != -1)
-				{
-					if (iIndex == iIndex2)
-					{
-						// merge
-						MergeSegment(iIndex, iIndex1);
-						bMatch = true;
-					}
-				}
-			}
-		}
-
-		int i2 = ::GetTickCount();
-		TRACE(_T("ProcessBoundary Round %d cost %d(ms)\n"), iRound++, i2 - i1);
-		if (!bMatch)
-			break;
-	}
-}
+//template <class T>
+//void ImgData<T>::ProcessBoundary()
+//{
+//	int iRound = 0;
+//	while (true)
+//	{
+//		int i1 = ::GetTickCount();
+//		bool bMatch = false;
+//		for (int i = 0; i < (int)vecBoundary.size(); i++)
+//		{
+//			ASSERT(vecBoundary[i].row < height && vecBoundary[i].col < width);
+//			int iIndex = vecBoundary[i].row * width + vecBoundary[i].col;
+//			if (segment[iIndex] == NULL || segment[iIndex]->m_bBoundary)
+//				continue;
+//			int iIndex1 = FindMatch(iIndex);
+//			if (iIndex1 != -1)
+//			{
+//				int iIndex2 = FindMatch(iIndex1, iIndex);
+//
+//				if (iIndex2 != -1)
+//				{
+//					if (iIndex == iIndex2)
+//					{
+//						// merge
+//						MergeSegment(iIndex, iIndex1);
+//						bMatch = true;
+//					}
+//				}
+//			}
+//		}
+//
+//		int i2 = ::GetTickCount();
+//		TRACE(_T("ProcessBoundary Round %d cost %d(ms)\n"), iRound++, i2 - i1);
+//		if (!bMatch)
+//			break;
+//	}
+//}
 
 template <class T>
 void ImgData<T>::ProcessviaMultiThread()
@@ -476,40 +500,41 @@ void ImgData<T>::ProcessAllSegment()
 		//::OutputDebugString(str);
 		++iTime;
 		vecTest.clear();
+		std::vector<MergePair>().swap(vecTest);
 	}
 }
 
-template <class T>
-void ImgData<T>::ProcessviaArea()
-{
-	while (true)
-	{
-		bool bMatch = false;
-		for (int i = 0; i < (int)segment.size(); i++)
-		{
-			if (segment[i] == NULL || segment[i]->m_bBoundary)
-				continue;
-			Segment* pSeg1 = FindMatchviaArea(segment[i]);
-			if (pSeg1 != NULL && pSeg1->m_iIndex != -1)
-			{
-				Segment* pSeg2 = FindMatchviaArea(pSeg1);
-
-				if (pSeg2 != NULL && pSeg2->m_iIndex != -1)
-				{
-					if (segment[i] == pSeg2)
-					{
-						// merge
-						MergeSegment(segment[i], pSeg1);
-						bMatch = true;
-					}
-				}
-			}
-		}
-
-		if (!bMatch)
-			break;
-	}
-}
+//template <class T>
+//void ImgData<T>::ProcessviaArea()
+//{
+//	while (true)
+//	{
+//		bool bMatch = false;
+//		for (int i = 0; i < (int)segment.size(); i++)
+//		{
+//			if (segment[i] == NULL || segment[i]->m_bBoundary)
+//				continue;
+//			Segment* pSeg1 = FindMatchviaArea(segment[i]);
+//			if (pSeg1 != NULL && pSeg1->m_iIndex != -1)
+//			{
+//				Segment* pSeg2 = FindMatchviaArea(pSeg1);
+//
+//				if (pSeg2 != NULL && pSeg2->m_iIndex != -1)
+//				{
+//					if (segment[i] == pSeg2)
+//					{
+//						// merge
+//						MergeSegment(segment[i], pSeg1);
+//						bMatch = true;
+//					}
+//				}
+//			}
+//		}
+//
+//		if (!bMatch)
+//			break;
+//	}
+//}
 
 template <class T>
 void ImgData<T>::Initialize()
@@ -557,8 +582,21 @@ void ImgData<T>::Initialize()
 	bQuitFind = false;
 	bForceMerge = false;
 #endif
+	switch (condition.calcType)
+	{
+	case Euclidean_Distance:
+		ptFilter = new EuclideanDistance();
+		break;
+	case New_Criteria:
+		ptFilter = new NewCriteria();
+		break;
+	default:
+		ptFilter = NULL;
+		break;
+	}
+	ASSERT(ptFilter != NULL);
 }
-
+/*
 template <class T>
 float ImgData<T>::CalcEuclideanDistance(int iIndex1, int iIndex2)
 {
@@ -658,7 +696,7 @@ float ImgData<T>::CalcNewCriteria(Segment* pSeg1, Segment* pSeg2)
 	float ed = sqrt(f / (float)pSeg1->m_Avg.size());
 	return ed;
 }
-
+*/
 template <class T>
 int ImgData<T>::FindMatch(int iIndex, int except = -1)
 {
@@ -677,11 +715,7 @@ int ImgData<T>::FindMatch(int iIndex, int except = -1)
 			{
 				continue;
 			}
-			// to change CalcEuclideanDistance to whatever you want
-			//float fValue = CalcEuclideanDistance(iIndex, p->m_iIndex);
-			float fValue = CalcEuclideanDistance(pSeg, p);
-
-			//float fValue = CalcNewCriteria(pSeg, p);
+			float fValue = ptFilter->CalcCoefficient(pSeg, p);
 			// find min
 #ifdef MULTI_THREAD
 			if (bForceMerge)
@@ -862,6 +896,12 @@ void ImgData<T>::UnInitialize()
 	delete[] pFindEventArray;
 	::CloseHandle(mergeHandle);
 #endif
+	if (ptFilter != NULL)
+	{
+		delete ptFilter;
+		ptFilter = NULL;
+	}
+
 	for (int i = 0; i < width * height; i++)
 	{
 		if (segment[i] != NULL)
@@ -876,6 +916,68 @@ void ImgData<T>::UnInitialize()
 
 template <class T>
 void ImgData<T>::InitNeighbours()
+{
+	if (condition.neibType == Four_Neighbour)
+		InitNeighbours_4();
+	else if (condition.neibType == Eight_Neighbour)
+		InitNeighbours_8();
+}
+
+template <class T>
+void ImgData<T>::InitNeighbours_4()
+{
+	// [r, c - 1], [r, c + 1], [r - 1, c], [r + 1, c]
+	for (int i = 0; i < width * height; i++)
+	{
+		int r = segment[i]->m_area[0].row;
+		int c = segment[i]->m_area[0].col;
+
+		ASSERT(segment[i]->m_iIndex == r * width + c);
+		// r, c-1
+		if (c >= 1)
+		{
+			int iIndex = r * width + c - 1;
+			//Neighbour nb;
+			//nb.iIndex = iIndex;
+			//nb.pSeg = segment[iIndex];
+			//segment[i]->m_neighbours.push_back(nb);
+			segment[i]->m_neighbours.push_back(iIndex);
+		}
+		// r, c+1
+		if (c < width - 1)
+		{
+			int iIndex = r * width + c + 1;
+			//Neighbour nb;
+			//nb.iIndex = iIndex;
+			//nb.pSeg = segment[iIndex];
+			//segment[i]->m_neighbours.push_back(nb);
+			segment[i]->m_neighbours.push_back(iIndex);
+		}
+		// r-1, c
+		if (r >= 1)
+		{
+			int iIndex = (r - 1) * width + c;
+			//Neighbour nb;
+			//nb.iIndex = iIndex;
+			//nb.pSeg = segment[iIndex];
+			//segment[i]->m_neighbours.push_back(nb);
+			segment[i]->m_neighbours.push_back(iIndex);
+		}
+		// r+1, c
+		if (r < height - 1)
+		{
+			int iIndex = (r + 1) * width + c;
+			//Neighbour nb;
+			//nb.iIndex = iIndex;
+			//nb.pSeg = segment[iIndex];
+			//segment[i]->m_neighbours.push_back(nb);
+			segment[i]->m_neighbours.push_back(iIndex);
+		}
+	}
+}
+
+template <class T>
+void ImgData<T>::InitNeighbours_8()
 {
 	for (int i = 0; i < width * height; i++)
 	{
@@ -967,6 +1069,7 @@ void ImgData<T>::InitNeighbours()
 	}
 }
 
+#ifdef USETXT
 template <class T>
 void ImgData<T>::Output(CString& strFile)
 {
@@ -976,11 +1079,12 @@ void ImgData<T>::Output(CString& strFile)
 	vecRow.assign(width, 0);
 	vecResult.assign(height, vecRow);
 
+#ifndef ONLYSEED
 	int iSum = 0;
 	int iIndex = 0;
 	for (int i = 0; i < width * height; i++)
 	{
-		if (segment[i] != NULL && segment[i]->m_bValid)
+		if (segment[i] != NULL && segment[i]->m_iIndex != -1)
 		{
 			iIndex++;
 			iSum += segment[i]->m_area.size();
@@ -991,8 +1095,26 @@ void ImgData<T>::Output(CString& strFile)
 			}
 		}
 	}
-
 	ASSERT(iSum == width * height);
+#else
+	// only seed
+	int iNumber = 0;
+	for (int i = 0; i < (int)seedPixel.size(); i++)
+	{
+		//int iIndex = seedPixel[i].row * width + seedPixel[i].col;
+		int iIndex = (height - 1 - seedPixel[i].row) * width + seedPixel[i].col;
+		if (segment[iIndex] != NULL && segment[iIndex]->m_bValid)
+		{
+			iNumber++;
+			for (int j = 0; j < (int)segment[iIndex]->m_area.size(); j++)
+			{
+				//vecResult[segment[i]->m_area[j].row][segment[i]->m_area[j].col] = segment[i]->m_iIndex;
+				vecResult[segment[iIndex]->m_area[j].row][segment[iIndex]->m_area[j].col] = iNumber;
+			}
+		}
+	}
+#endif
+	
 	CStdioFile f;
 	f.Open(strFile, CFile::modeCreate | CFile::modeReadWrite);
 
@@ -1010,66 +1132,138 @@ void ImgData<T>::Output(CString& strFile)
 	}
 	f.Close();
 }
-
+#else
 template <class T>
-Segment* ImgData<T>::FindMatchviaArea(Segment* pSeg)
+void ImgData<T>::Output(CString& strFile, GDALDataset* pDataset)
 {
-	if (pSeg != NULL && pSeg->m_iIndex != -1)
+	const char* pszFormat = _T("GTiff");
+	GDALDriver *poDriver = GetGDALDriverManager()->GetDriverByName(pszFormat);
+	char** papszMetadata;
+
+	if (poDriver == NULL)
 	{
-		float fEd_min = 1e8;
-		int index = -1;
-		for (int j = 0; j < (int)pSeg->m_neighbours.size(); j++)
-		{
-			// calc
-			Segment* p = pSeg->m_neighbours[j].pSeg;
-			if (p == NULL || p->m_bBoundary)
-				continue;
-
-			// to change CalcEuclideanDistance to whatever you want
-			//float fValue = CalcEuclideanDistance(pSeg, p);
-
-			float fValue = CalcShapefactor(pSeg, p);
-			// find min
-			if (fValue < fEd_min && fValue < condition.shapefactor)
-			{
-				fEd_min = fValue;
-				index = p->m_iIndex;
-			}
-		}
-		if (index >= 0)
-		{
-			//TRACE(_T("%d match %d\n"), pSeg->m_iIndex, index);
-			return segment[index];
-		}
+		AfxMessageBox(_T("Output:Can not get GDAL Driver~!."));
+		return;
 	}
 
-	return NULL;
-}
+	papszMetadata = poDriver->GetMetadata();
+	if( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATE, FALSE ) )
+		TRACE( _T("Driver %s supports Create() method.\n"), pszFormat );
+	if( CSLFetchBoolean( papszMetadata, GDAL_DCAP_CREATECOPY, FALSE ) )
+		TRACE( _T("Driver %s supports CreateCopy() method.\n"), pszFormat );
 
-template <class T>
-float ImgData<T>::CalcShapefactor(Segment* pSeg1, Segment* pSeg2)
-{
-	float sf = 1e8;
+	// create file
+	GDALDataset* poDstDS;
+	char** papszOptions = NULL;
+	poDstDS = poDriver->Create(strFile.GetBuffer(1024), width, height, 1, GDT_UInt16, papszMetadata);
+	strFile.ReleaseBuffer();
 
-	std::vector<Pixel> vecArea;
-	vecArea.insert(vecArea.end(), pSeg1->m_area.begin(), pSeg1->m_area.end());
-	vecArea.insert(vecArea.end(), pSeg2->m_area.begin(), pSeg2->m_area.end());
-
-	if (vecArea.empty())
-		return sf;
-
-	int iSize = vecArea.size();
-
-	int min_row = pSeg1->min_row < pSeg2->min_row ? pSeg1->min_row : pSeg2->min_row;
-	int min_col = pSeg1->min_col < pSeg2->min_col ? pSeg1->min_col : pSeg2->min_col;
-
-	int max_row = pSeg1->max_row > pSeg2->max_row ? pSeg1->max_row : pSeg2->max_row;
-	int max_col = pSeg1->max_col > pSeg2->max_col ? pSeg1->max_col : pSeg2->max_col;
+	double adfGeoTransform[6];
+	if (pDataset->GetGeoTransform(adfGeoTransform) == CE_None)
+	{
+		poDstDS->SetGeoTransform(adfGeoTransform);
+	}
+	//else
+	//{
+	//	AfxMessageBox(_T("Output:Can not GetGeoTransform."));
+	//	GDALClose( (GDALDatasetH) poDstDS );
+	//	return;
+	//}
+	const char* pszProjection = pDataset->GetProjectionRef();
+	poDstDS->SetProjection(pszProjection);
 	
-	sf = (float)(iSize) / (float)((max_row - min_row + 1) * (max_col - min_col + 1));
-	return sf;
+	GDALRasterBand* poBand = poDstDS->GetRasterBand(1);
+	if (poBand == NULL)
+	{
+		AfxMessageBox(_T("Output:Can not get RasterBand."));
+		GDALClose( (GDALDatasetH) poDstDS );
+		return;
+	}
+
+	unsigned short* pData = new unsigned short[width * height];
+	int iNumber = 0;
+	for (int i = 0; i < width * height; i++)
+	{
+		if (segment[i] != NULL && segment[i]->m_bValid)
+		{
+			iNumber++;
+			for (int j = 0; j < (int)segment[i]->m_area.size(); j++)
+			{
+				int iIndex = segment[i]->m_area[j].row * width + segment[i]->m_area[j].col;
+				pData[iIndex] = iNumber;
+			}
+		}
+	}
+	
+
+	char* pszData = (char*)pData;
+	poBand->RasterIO(GF_Write, 0, 0, width, height, pszData, width, height, GDT_UInt16, 0, 0);
+	/* Once we're done, close properly the dataset */
+	GDALClose( (GDALDatasetH) poDstDS );
+	delete pData;
 }
+#endif
+
+//template <class T>
+//Segment* ImgData<T>::FindMatchviaArea(Segment* pSeg)
+//{
+//	if (pSeg != NULL && pSeg->m_iIndex != -1)
+//	{
+//		float fEd_min = 1e8;
+//		int index = -1;
+//		for (int j = 0; j < (int)pSeg->m_neighbours.size(); j++)
+//		{
+//			// calc
+//			Segment* p = pSeg->m_neighbours[j].pSeg;
+//			if (p == NULL || p->m_bBoundary)
+//				continue;
+//
+//			// to change CalcEuclideanDistance to whatever you want
+//			//float fValue = CalcEuclideanDistance(pSeg, p);
+//
+//			float fValue = CalcShapefactor(pSeg, p);
+//			// find min
+//			if (fValue < fEd_min && fValue < condition.shapefactor)
+//			{
+//				fEd_min = fValue;
+//				index = p->m_iIndex;
+//			}
+//		}
+//		if (index >= 0)
+//		{
+//			//TRACE(_T("%d match %d\n"), pSeg->m_iIndex, index);
+//			return segment[index];
+//		}
+//	}
+//
+//	return NULL;
+//}
+//
+//template <class T>
+//float ImgData<T>::CalcShapefactor(Segment* pSeg1, Segment* pSeg2)
+//{
+//	float sf = 1e8;
+//
+//	std::vector<Pixel> vecArea;
+//	vecArea.insert(vecArea.end(), pSeg1->m_area.begin(), pSeg1->m_area.end());
+//	vecArea.insert(vecArea.end(), pSeg2->m_area.begin(), pSeg2->m_area.end());
+//
+//	if (vecArea.empty())
+//		return sf;
+//
+//	int iSize = vecArea.size();
+//
+//	int min_row = pSeg1->min_row < pSeg2->min_row ? pSeg1->min_row : pSeg2->min_row;
+//	int min_col = pSeg1->min_col < pSeg2->min_col ? pSeg1->min_col : pSeg2->min_col;
+//
+//	int max_row = pSeg1->max_row > pSeg2->max_row ? pSeg1->max_row : pSeg2->max_row;
+//	int max_col = pSeg1->max_col > pSeg2->max_col ? pSeg1->max_col : pSeg2->max_col;
+//	
+//	sf = (float)(iSize) / (float)((max_row - min_row + 1) * (max_col - min_col + 1));
+//	return sf;
+//}
 #ifdef MULTI_THREAD
+/*
 //template <class T>
 //void ImgData<T>::ThreadProcessAll(int& row_start, int& row_end, int& col_start, int& col_end)
 //{
@@ -2019,6 +2213,7 @@ float ImgData<T>::CalcNewCriteria(Segment** pSegBlock, int iIndex1, int iIndex2)
 	float ed = sqrt(f / (float)pSeg1->m_Avg.size());
 	return ed;
 }
+*/
 template <class T>
 void ImgData<T>::ThreadFind()
 {
@@ -2078,7 +2273,7 @@ void ImgData<T>::ThreadFind()
 				}
 				else
 				{
-					if (segment[iIndex]->m_area.size() < 50)
+					if (segment[iIndex]->m_area.size() < (UINT)condition.min_size)
 					{
 						int iIndex1 = FindMatch(iIndex);
 						if (iIndex1 != -1)

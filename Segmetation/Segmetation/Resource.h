@@ -16,6 +16,14 @@
 #define IDC_EDIT_THRESHOLD              1006
 #define IDC_BUTTON_PROCESS              1007
 #define IDC_EDIT_SHAPE_FACTOR           1008
+#define IDC_CHECK_EUCLIDEAN_DISTANCE    1014
+#define IDC_CHECK_NEW_CRITERIA          1015
+#define IDC_STATIC_PARAMETER            1016
+#define IDC_STATIC_MIN_SIZE             1017
+#define IDC_EDIT_MIN_SIZE               1018
+#define IDC_CHECK_4NEIGHBOUR            1019
+#define IDC_CHECK_8NEIGHBOUR            1020
+#define IDC_STATIC_THRESHOLD            1021
 
 // Next default values for new objects
 // 
@@ -23,7 +31,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1009
+#define _APS_NEXT_CONTROL_VALUE         1027
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

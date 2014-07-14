@@ -100,10 +100,7 @@ BOOL CSegmetationDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// Set small icon
 
 	// TODO: Add extra initialization here
-	//std::vector<int> vecTemp;
-	//vecTemp.assign(1250*1250, 1);
-	//vecTemp.clear();
-	//std::vector<int>().swap(vecTemp);
+	SetTipInfo();
 	GetDlgItem(IDC_BUTTON_PROCESS)->EnableWindow(FALSE);
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -218,10 +215,10 @@ void CSegmetationDlg::OnBnClickedButtonLoadSeed()
 
 			// start from bottom-left, col comes first
 			// if start from top-left, row comes first
-			AfxExtractSubString(str, strContent, i, _T(' '));
+			AfxExtractSubString(str, strContent, i, _T('\t'));
 			p.col = (int)atof(str);
 			i++;
-			AfxExtractSubString(str, strContent, i, _T(' '));
+			AfxExtractSubString(str, strContent, i, _T('\t'));
 			p.row = (int)atof(str);
 
 			m_vecSeed.push_back(p);
@@ -262,10 +259,182 @@ void CSegmetationDlg::OnBnClickedButtonProcess()
 		return;
 	}
 
-	GetDlgItem(IDC_EDIT_SHAPE_FACTOR)->GetWindowText(str);
-	m_con.shapefactor = (float)atof(str);
+	GetDlgItem(IDC_EDIT_MIN_SIZE)->GetWindowText(str);
+	m_con.min_size = atoi(str);
+
+	if (m_con.min_size < 2)
+	{
+		AfxMessageBox(_T("Invalid Minimum Size."));
+		return;
+	}
+
+	int iCheck_ED = IsDlgButtonChecked(IDC_CHECK_EUCLIDEAN_DISTANCE);
+	int iCheck_NC = IsDlgButtonChecked(IDC_CHECK_NEW_CRITERIA);
+
+	if (iCheck_ED)
+		m_con.calcType = Euclidean_Distance;
+	else if (iCheck_NC)
+		m_con.calcType = New_Criteria;
+	else
+		m_con.calcType = None;
+
+	if (m_con.calcType == None)
+	{
+		AfxMessageBox(_T("Please choose Euclidean Distance Or New Criteria."));
+		return;
+	}
+	int iCheck4 = IsDlgButtonChecked(IDC_CHECK_4NEIGHBOUR);
+	int iCheck8 = IsDlgButtonChecked(IDC_CHECK_8NEIGHBOUR);
+
+	if (iCheck4)
+		m_con.neibType = Four_Neighbour;
+	else if (iCheck8)
+		m_con.neibType = Eight_Neighbour;
+	else
+		m_con.neibType = None_Neighbour;
+
+	if (m_con.neibType == None_Neighbour)
+	{
+		AfxMessageBox(_T("Please choose 4 Neighbours Or 8 Neighbours."));
+		return;
+	}
 
 	m_datafile.Process(m_vecSeed, m_con);
 
 	AfxMessageBox("Finished~!");
 }
+
+
+BOOL CSegmetationDlg::PreTranslateMessage(MSG* pMsg)
+{
+	// TODO: Add your specialized code here and/or call the base class
+	m_tooltip.RelayEvent(pMsg);
+	return CDialog::PreTranslateMessage(pMsg);
+}
+
+
+LRESULT CSegmetationDlg::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
+{
+	// TODO: Add your specialized code here and/or call the base class
+	switch (message)
+	{
+	case WM_COMMAND:
+		{
+			HWND hCtl = (HWND)lParam;
+			int wmId = LOWORD(wParam);
+			int wmEvent = HIWORD(wParam);
+			if (lParam)
+			{
+				switch (wmId)
+				{
+				case IDC_CHECK_EUCLIDEAN_DISTANCE:
+					{
+						switch (wmEvent)
+						{
+						case BN_CLICKED:
+							{
+								if (IsDlgButtonChecked(IDC_CHECK_EUCLIDEAN_DISTANCE))
+								{
+									m_con.calcType = Euclidean_Distance;
+									UnCkeck(IDC_CHECK_NEW_CRITERIA);
+								}
+							}
+							break;
+						default:
+							break;
+						}
+					}
+					break;
+				case IDC_CHECK_NEW_CRITERIA:
+					{
+						switch (wmEvent)
+						{
+						case BN_CLICKED:
+							{
+								if (IsDlgButtonChecked(IDC_CHECK_NEW_CRITERIA))
+								{
+									m_con.calcType = New_Criteria;
+									UnCkeck(IDC_CHECK_EUCLIDEAN_DISTANCE);
+								}
+							}
+							break;
+						default:
+							break;
+						}
+					}
+					break;
+				case IDC_CHECK_4NEIGHBOUR:
+					{
+						switch (wmEvent)
+						{
+						case BN_CLICKED:
+							{
+								if (IsDlgButtonChecked(IDC_CHECK_4NEIGHBOUR))
+								{
+									m_con.neibType = Four_Neighbour;
+									UnCkeck(IDC_CHECK_8NEIGHBOUR);
+								}
+							}
+							break;
+						default:
+							break;
+						}
+					}
+					break;
+				case IDC_CHECK_8NEIGHBOUR:
+					{
+						switch (wmEvent)
+						{
+						case BN_CLICKED:
+							{
+								if (IsDlgButtonChecked(IDC_CHECK_8NEIGHBOUR))
+								{
+									m_con.neibType = Eight_Neighbour;
+									UnCkeck(IDC_CHECK_4NEIGHBOUR);
+								}
+							}
+							break;
+						default:
+							break;
+						}
+					}
+					break;
+				default:
+					break;
+				}
+			}
+		}
+		break;
+	default:
+		break;
+	}
+	return CDialog::WindowProc(message, wParam, lParam);
+}
+
+
+void CSegmetationDlg::SetCheck(int iCtrl)
+{
+	CButton* pCheck = (CButton*)GetDlgItem(iCtrl);
+	pCheck->SetCheck(TRUE);
+}
+
+void CSegmetationDlg::UnCkeck(int iCtrl)
+{
+	CButton* pCheck = (CButton*)GetDlgItem(iCtrl);
+	pCheck->SetCheck(FALSE);
+}
+
+void CSegmetationDlg::SetTipInfo()
+{
+	// tool tip
+	EnableToolTips(TRUE);
+	m_tooltip.Create(this);
+	m_tooltip.Activate(TRUE);
+	m_tooltip.AddTool(GetDlgItem(IDC_BUTTON_PROCESS), _T("press to process"));
+	m_tooltip.AddTool(GetDlgItem(IDC_BUTTON_IMG_FILE), _T("press to choose an image file"));
+	m_tooltip.AddTool(GetDlgItem(IDC_EDIT_MIN_SIZE), _T("segment size smaller than this number will be forced to be merged into neighbour segments"));
+	m_tooltip.SetTipBkColor(RGB(255, 255, 255));
+	m_tooltip.SetTipTextColor(RGB(0, 0, 0));
+	m_tooltip.SetDelayTime(500);
+}
+

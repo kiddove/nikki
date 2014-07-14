@@ -217,6 +217,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Datafile.cpp" />
+    <ClCompile Include="InterfaceFilter.cpp" />
     <ClCompile Include="Segment.cpp" />
     <ClCompile Include="Segmetation.cpp" />
     <ClCompile Include="SegmetationDlg.cpp" />
@@ -229,6 +230,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Datafile.h" />
+    <ClInclude Include="InterfaceFilter.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Segment.h" />
     <ClInclude Include="Segmetation.h" />

@@ -40,9 +40,17 @@ private:
 	Datafile m_datafile;
 
 	segCondition m_con;
+	CToolTipCtrl m_tooltip;
+
+	void SetCheck(int iCtrl);
+	void UnCkeck(int iCtrl);
+
+	void SetTipInfo();
 public:
 	afx_msg void OnBnClickedButtonImgFile();
 	afx_msg void OnBnClickedButtonLoadSeed();
 	afx_msg void OnBnClickedButtonLoadImg();
 	afx_msg void OnBnClickedButtonProcess();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	virtual LRESULT WindowProc(UINT message, WPARAM wParam, LPARAM lParam);
 };

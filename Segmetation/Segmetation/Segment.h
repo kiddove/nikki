@@ -6,21 +6,18 @@
 // only contain position informations
 class Segment;
 
-struct Neighbour
+enum CalcType
 {
-	Segment* pSeg;
-	int iIndex;
+	None = 0,
+	Euclidean_Distance,
+	New_Criteria
+};
 
-	// for find
-	bool operator==(const Neighbour& n) const
-	{
-		return iIndex == n.iIndex && pSeg == n.pSeg;
-	}
-	//// for sort
-	//bool operator < (const Neighbour& n) const
-	//{
-	//	return iIndex < n.iIndex;
-	//}
+enum NeigbourType
+{
+	None_Neighbour = 0,
+	Four_Neighbour,
+	Eight_Neighbour
 };
 
 struct Pixel
@@ -92,14 +89,6 @@ public:
 		m_Variance.clear();
 	}
 	
-	// lock / unlock neighbours
-	void LockNeighbours();
-	void UnlockNeighbours();
-
-	// store neighbour segment pointers
-
-	//std::vector<Segment*> m_neighbours;
-	//std::vector<Neighbour> m_neighbours;
 	std::vector<int> m_neighbours;
 	// include pixels 
 	std::vector<Pixel> m_area;
