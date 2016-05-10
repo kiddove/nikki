@@ -1,0 +1,276 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About Segmentation"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,14,14,21,20
+    LTEXT           "Segmentation, Version 1.0",IDC_STATIC,42,14,114,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 2014",IDC_STATIC,42,26,114,8
+    DEFPUSHBUTTON   "OK",IDOK,113,41,50,14,WS_GROUP
+END
+
+IDD_SEGMENTATION_DIALOG DIALOGEX 0, 0, 356, 272
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "Segmentation"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    EDITTEXT        IDC_EDIT_IMG_FILE,13,57,179,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Choose Image",IDC_BUTTON_IMG_FILE,205,57,50,14
+    PUSHBUTTON      "Load Image",IDC_BUTTON_LOAD_IMG,292,57,50,14
+    EDITTEXT        IDC_EDIT_THRESHOLD_PRE,102,147,40,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Process",IDC_BUTTON_PROCESS,292,161,50,14
+    LTEXT           "Threshold(PRE)",IDC_STATIC_THRESHOLD_PRE,30,149,52,8
+    GROUPBOX        "Parameters",IDC_STATIC_PARAMETER,17,80,265,174
+    CONTROL         "4 Neighbours",IDC_CHECK_4NEIGHBOUR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,24,96,59,10
+    CONTROL         "8 Neighbours",IDC_CHECK_8NEIGHBOUR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,92,96,58,10
+    EDITTEXT        IDC_EDIT_MASK_FILE,13,13,179,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Choose Mask",IDC_BUTTON_MASK_FILE,205,13,50,14
+    PUSHBUTTON      "Load Mask",IDC_BUTTON_LOAD_MASK,292,13,50,14
+    LTEXT           "Threshold",IDC_STATIC_THRESHOLD,30,220,34,8
+    EDITTEXT        IDC_EDIT_THRESHOLD,102,217,40,14,ES_AUTOHSCROLL
+    LTEXT           "Iteration",IDC_STATIC_ITERATION,161,149,28,8
+    EDITTEXT        IDC_EDIT_ITERATION,208,145,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "ED",IDC_CHECK_PRE_ED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,30,128,25,10
+    CONTROL         "SAM",IDC_CHECK_PRE_SAM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,69,128,31,10
+    PUSHBUTTON      "Preprocess",IDC_BUTTON_PREPROCESS,292,123,50,14
+    CONTROL         "SD",IDC_CHECK_PRE_SD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,128,25,10
+    PUSHBUTTON      "Statistic",IDC_BUTTON_STATISTIC,292,85,50,14
+    CONTROL         "resize",IDC_CHECK_RESIZE,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,162,96,35,10
+    EDITTEXT        IDC_EDIT_SEED_FILE,13,35,179,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Choose Seed",IDC_BUTTON_SEED_FILE,205,35,50,14
+    PUSHBUTTON      "Load Seed",IDC_BUTTON_LOAD_SEED,292,35,50,14
+    GROUPBOX        "Pre_Process",IDC_STATIC_PRE_PROCESS,22,111,254,63
+    GROUPBOX        "Process",IDC_STATIC_PROCESS,23,180,253,68
+    CONTROL         "RSE",IDC_CHECK_PRE_RSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,153,128,29,10
+    CONTROL         "RDV",IDC_CHECK_PRE_RDV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,196,128,30,10
+    CONTROL         "RDSE",IDC_CHECK_PRE_RDSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,240,128,34,10
+    CONTROL         "ED",IDC_CHECK_ED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,30,193,25,10
+    CONTROL         "SAM",IDC_CHECK_SAM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,69,193,31,10
+    CONTROL         "SD",IDC_CHECK_SD,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,193,25,10
+    CONTROL         "RSE",IDC_CHECK_RSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,153,193,29,10
+    CONTROL         "RDV",IDC_CHECK_RDV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,196,193,30,10
+    CONTROL         "RDSE",IDC_CHECK_RDSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,240,193,34,10
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,1,0,9
+ PRODUCTVERSION 1,1,0,9
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904e4"
+        BEGIN
+            VALUE "CompanyName", "TODO: <Company name>"
+            VALUE "FileDescription", "Similarity measures for segmentation"
+            VALUE "FileVersion", "1.1.0.9"
+            VALUE "InternalName", "Segmentation.exe"
+            VALUE "LegalCopyright", "TODO: (c) <Company name>.  All rights reserved."
+            VALUE "OriginalFilename", "Segmentation.exe"
+            VALUE "ProductName", "Segmentation"
+            VALUE "ProductVersion", "1.1.0.9"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 163
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
+    END
+
+    IDD_SEGMENTATION_DIALOG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 349
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 265
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_ABOUTBOX            "&About Segmentation..."
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// English (Canada) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENC)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_CAN
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DIALOG_STATISTIC DIALOGEX 0, 0, 756, 320
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Image Stastistic"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_DIALOG_STATISTIC, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 749
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 313
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#ifndef APSTUDIO_INVOKED\r\n"
+    "#include ""targetver.h""\r\n"
+    "#endif\r\n"
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#include ""res\\Segmentation.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""afxres.rc""     // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\Segmentation.ico"
+#endif    // English (Canada) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#include "res\Segmentation.rc2"  // non-Microsoft Visual C++ edited resources
+#include "afxres.rc"     // Standard components
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
