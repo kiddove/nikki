@@ -48,7 +48,7 @@ int ImageReader::getOpenCVType(GDALDataType gType, int iChannel)
 		break;
 	case GDT_Float64:
 		return CV_64FC(iChannel);
-	case GDT_CInt32:
+	case GDT_Int32:
 		return CV_32SC(iChannel);
 	default:
 		return -1;
@@ -78,7 +78,7 @@ bool ImageReader::LoadFile(string strFile)
 	GDALDataType gType = pBand->GetRasterDataType();
 	int iType = getOpenCVType(gType, iChannel);
 	//int bType = getOpenCVType(gType, GDT_Byte);
-	int bType = getOpenCVType(GDT_CInt32, 1);
+	int bType = getOpenCVType(GDT_Int32, 1);
 	m_data.create(iHeight, iWidth, bType);
 	//std::vector<Mat> tobeMerged;
 	//cv::Mat mt;
@@ -113,7 +113,7 @@ bool ImageReader::LoadFile(string strFile)
 					double dValue = mtt.at<double>(ii, jj);
 					int fValue = (int)dValue;
 					SetValue(m_data, ii, jj, i-1, fValue);
-					//TRACE(_T("%d, "), fValue);
+					//TRACE(_T("%.2f, "), fValue);
 					p++;
 				}
 				//TRACE(_T("\n"));
