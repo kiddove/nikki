@@ -26,6 +26,6 @@ private:
 	GDALDataset* m_pDataset;
 public:
 	static int getOpenCVType(GDALDataType gType, int iChannel);
-	static int GetValue(cv::Mat& mat, int r, int c, int b);
-	static void SetValue(cv::Mat& mat, int r, int c, int b, int& fValue);
+	static unsigned char GetValue(cv::Mat& mat, int r, int c, int b);
+	static void SetValue(cv::Mat& mat, int r, int c, int b, unsigned char& fValue);
 };

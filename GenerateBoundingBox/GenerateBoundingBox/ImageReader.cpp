@@ -78,7 +78,7 @@ bool ImageReader::LoadFile(string strFile)
 	GDALDataType gType = pBand->GetRasterDataType();
 	int iType = getOpenCVType(gType, iChannel);
 	//int bType = getOpenCVType(gType, GDT_Byte);
-	int bType = getOpenCVType(GDT_Int32, 1);
+	int bType = getOpenCVType(GDT_Byte, 1);
 	m_data.create(iHeight, iWidth, bType);
 	//std::vector<Mat> tobeMerged;
 	//cv::Mat mt;
@@ -110,8 +110,14 @@ bool ImageReader::LoadFile(string strFile)
 				for (int jj = 0; jj < iWidth; jj++)
 				{
 					//fMat.at<float>(ii, jj) = (float)mtt.at<unsigned short>(ii, jj);
+					//int fValue = (int)dValue;
 					double dValue = mtt.at<double>(ii, jj);
-					int fValue = (int)dValue;
+					unsigned char fValue = 0;
+					if (dValue > 0.0001)
+						fValue = 255;
+					else
+						fValue = 0;
+
 					SetValue(m_data, ii, jj, i-1, fValue);
 					//TRACE(_T("%.2f, "), fValue);
 					p++;
@@ -301,25 +307,25 @@ bool ImageReader::LoadFile(string strFile)
 //    return 0;
 //}
 
-int ImageReader::GetValue(Mat& mat, int r, int c, int b)
+unsigned char ImageReader::GetValue(Mat& mat, int r, int c, int b)
 {
 	if (!mat.isContinuous())
-		return 0.0;
+		return 0;
 	if (r < 0 || r >= mat.rows)
-		return 0.0;
+		return 0;
 	if (c < 0 || c >= mat.cols)
-		return 0.0;
+		return 0;
 	int iChannel = mat.channels();
 	if (b < 0 || b >= iChannel)
-		return 0.0;
+		return 0;
 
-	int * p = (int*)mat.ptr(r);
+	unsigned char * p = (unsigned char*)mat.ptr(r);
 
-	int f = (int)p[c * iChannel + b];
+	unsigned char f = (unsigned char)p[c * iChannel + b];
 	return f;
 }
 
-void ImageReader::SetValue(Mat& mat, int r, int c, int b, int& fValue)
+void ImageReader::SetValue(Mat& mat, int r, int c, int b, unsigned char& fValue)
 {
 	if (!mat.isContinuous())
 		return;
@@ -331,7 +337,7 @@ void ImageReader::SetValue(Mat& mat, int r, int c, int b, int& fValue)
 	if (b < 0 || b >= iChannel)
 		return;
 
-	int * p = (int*)mat.ptr(r);
+	unsigned char * p = (unsigned char*)mat.ptr(r);
 
 	//float f = (float)p[c * iChannel + b];
 	//return f;

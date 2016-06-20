@@ -42,8 +42,8 @@ int _tmain(int argc, _TCHAR* argv[])
 		return -1;
 	}
 
-	cv::Mat src;
-	imgReader.m_data.convertTo(src, CV_8U);
+	//cv::Mat src;
+	//imgReader.m_data.convertTo(src, CV_8U);
 	//cv::Mat src_gray, threshold_output;
 	// need 3or4channel 
 	//cv::cvtColor(src, src_gray, CV_BGR2GRAY);
@@ -53,13 +53,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	vector<Vec4i> hierarchy;
 
 	// 8uc1 32fc1
-	threshold(src, src, 100, 255, THRESH_BINARY);
+	threshold(imgReader.m_data, imgReader.m_data, 100, 255, THRESH_BINARY);
 	// need 8uc1, 32sc1
 	//int iii = CV_32SC1;
 	//cv::Mat helpframe2;
 	//imgReader.m_data.convertTo(helpframe2, CV_32S);
 	//iii = helpframe2.depth();
-	findContours(src, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+	findContours(imgReader.m_data, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 
 	vector<vector<Point>> contours_poly(contours.size());
 	vector<Rect> boundRect(contours.size());
@@ -79,7 +79,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	{
        Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
        drawContours( drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
-       rectangle( drawing, boundRect[i].tl(), boundRect[i].br(), color, 2, 8, 0 );
+       rectangle( drawing, boundRect[i].tl(), boundRect[i].br(), color, 1, 8, 0 );
        //circle( drawing, center[i], (int)radius[i], color, 2, 8, 0 );
 	}
 
