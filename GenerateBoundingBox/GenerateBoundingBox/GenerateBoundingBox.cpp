@@ -53,7 +53,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	vector<Vec4i> hierarchy;
 
 	// 8uc1 32fc1
-	threshold(imgReader.m_data, imgReader.m_data, 100, 255, THRESH_BINARY);
+	//threshold(imgReader.m_data, imgReader.m_data, 100, 255, THRESH_BINARY);
 	// need 8uc1, 32sc1
 	//int iii = CV_32SC1;
 	//cv::Mat helpframe2;
@@ -63,19 +63,19 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	vector<vector<Point>> contours_poly(contours.size());
 	vector<Rect> boundRect(contours.size());
-	vector<Point2f> center(contours.size());
-	vector<float> radius(contours.size());
+	//vector<Point2f> center(contours.size());
+	//vector<float> radius(contours.size());
 
-	for (int i = 0; i < contours.size(); i++)
+	for (int i = 0; i < (int)contours.size(); i++)
 	{
 		approxPolyDP(cv::Mat(contours[i]), contours_poly[i], 3, true);
 		boundRect[i] = boundingRect(cv::Mat(contours_poly[i]));
-		minEnclosingCircle((Mat)contours_poly[i], center[i], radius[i]);
+		//minEnclosingCircle((Mat)contours_poly[i], center[i], radius[i]);
 	}
 
 	Mat drawing = Mat::zeros(imgReader.m_data.size(), CV_8UC3);
 	RNG rng(12345);
-	for (int i = 0; i < contours.size(); i++)
+	for (int i = 0; i < (int)contours.size(); i++)
 	{
        Scalar color = Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) );
        drawContours( drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
