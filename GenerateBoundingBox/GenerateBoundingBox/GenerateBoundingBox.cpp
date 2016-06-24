@@ -214,7 +214,7 @@ int _tmain(int argc, _TCHAR* argv[])
 
 
 
-
+	//TRACE("%s, %d, %.2f", "what ever", 3, 5.2);
 
 
 
@@ -227,7 +227,6 @@ int _tmain(int argc, _TCHAR* argv[])
 
 	//namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
 	//imshow( "Display window", imgReader.m_data );                   // Show our image inside it.
-
 	waitKey(0);   
 
 	return 0;
