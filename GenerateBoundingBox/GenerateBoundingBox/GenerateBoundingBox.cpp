@@ -33,7 +33,36 @@ bool compareRect ( cv::Rect rc1,cv::Rect rc2 ) {
 	}
 }
 
-bool isRectValid(Rect rc1, Rect rc2, float threshold)
+bool isRectPositionValid(Rect rc1, Rect rc2, int threshold)
+{
+	int x, y, width, height;
+	if (rc1.x - threshold >= 0) 
+	{
+		x = rc1.x - threshold;
+		width = 2 * threshold;
+	}
+	else
+	{
+		x = 0;
+		width = threshold + rc1.x;
+	}
+
+	if (rc1.y - threshold >= 0) 
+	{
+		y = rc1.y - threshold;
+		height = 2 * threshold;
+	}
+	else
+	{
+		y = 0;
+		height = threshold + rc1.y;
+	}
+	Rect rc(x, y, width, height);
+
+	return (rc & rc2) == rc2;
+}
+
+bool isRectAngleValid(Rect rc1, Rect rc2, float threshold)
 {
 	float angle1, angle2;
 	angle1 = atan((float)rc1.width / (float)rc1.height) * 180 / (float)PI;
@@ -140,10 +169,11 @@ int _tmain(int argc, _TCHAR* argv[])
 	//}
 
 	float angle_threshold = 3.0;
+	int postion_threshold = 100;
 	// sort rect
 	std::sort(calcRect.begin(), calcRect.end(), compareRect);
 	// calc
-	std::vector<Rect> resultRect;
+	std::vector<Rect> campRect;
 	for (int j = 0; j < (int)calcRect.size(); j++)
 	{
 		for(int i = 0; i < (int)calcRect.size(); i++)
@@ -153,23 +183,26 @@ int _tmain(int argc, _TCHAR* argv[])
 				continue;
 			}
 
-			if (!isRectValid(calcRect[j], calcRect[i], angle_threshold))
+			if (!isRectAngleValid(calcRect[j], calcRect[i], angle_threshold) || !isRectPositionValid(calcRect[j], calcRect[i], postion_threshold))
 				continue;
 
 			// merge together
 			Rect rc_merge = calcRect[j] | calcRect[i];
 			// if angle valid
-			if (!isRectValid(calcRect[j], rc_merge, angle_threshold))
+			if (!isRectAngleValid(calcRect[j], rc_merge, angle_threshold))
 				continue;
 
 			//cout << "lalala" << endl;
-			//resultRect.push_back(rc_merge);
-			calcRect[j] = rc_merge;
+			//campRect.push_back(calcRect[i]);
+			calcRect[i] = calcRect[j] = rc_merge;
 		}
 		///
 	}
 
 
+
+
+	std::sort(calcRect.begin(), calcRect.end(), compareRect);
 
 	for (int i = 0; i < (int)calcRect.size(); i++)
 	{
@@ -178,13 +211,6 @@ int _tmain(int argc, _TCHAR* argv[])
 		rectangle( drawing, calcRect[i].tl(), calcRect[i].br(), color, 1, 8, 0 );
 		//circle( drawing, center[i], (int)radius[i], color, 2, 8, 0 );
 	}
-
-
-
-
-
-
-
 
 
 
